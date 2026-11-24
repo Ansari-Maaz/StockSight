@@ -44,15 +44,39 @@ UNIVERSE_CSV = Path(
 )
 
 REQUIRED_COLUMNS = ["Open", "High", "Low", "Close", "Volume"]
-DEFAULT_START = date.today() - timedelta(days=365 * 10)
-DEFAULT_END = date.today() + timedelta(days=1)
 REFRESH_TTL_HOURS = float(getattr(settings, "MARKET_REFRESH_TTL_HOURS", 1))
-STALE_AFTER_DAYS = 3  # Fri -> Mon / holidays need a small grace window
+RETRY_COOLDOWN_SECONDS = min(REFRESH_TTL_HOURS * 3600, 15 * 60)
 NETWORK_TIMEOUT = 20
 
 _LOCAL_LOCKS: dict[str, threading.Lock] = {}
 _LOCKS_GUARD = threading.Lock()
 _META_GUARD = threading.Lock()
+
+
+def _default_start() -> date:
+    return date.today() - timedelta(days=365 * 10)
+
+
+def _default_end() -> date:
+    return date.today() + timedelta(days=1)
+
+
+def _expected_session(now: datetime | None = None) -> date:
+    """Most recent US session whose daily bar should exist at ``now`` (UTC).
+
+    The regular close is 16:00 ET. Using 21:00 UTC keeps us safely after the
+    close in both EST and EDT; before that, the previous weekday is expected.
+    """
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    now = now.astimezone(timezone.utc)
+    expected = now.date()
+    if now.hour < 21:
+        expected -= timedelta(days=1)
+    while expected.weekday() >= 5:
+        expected -= timedelta(days=1)
+    return expected
 
 
 # --------------------------------------------------------------------------- #
@@ -204,8 +228,8 @@ def fetch_remote(
     import yfinance as yf  # imported lazily to keep startup fast / tests offline
 
     symbol = normalize_symbol(symbol)
-    start = str(start or DEFAULT_START)
-    end = str(end or DEFAULT_END)
+    start = str(start or _default_start())
+    end = str(end or _default_end())
 
     last_error: Exception | None = None
     for attempt in range(attempts):
@@ -247,18 +271,22 @@ def _merge_frames(local: pd.DataFrame | None, remote: pd.DataFrame) -> pd.DataFr
 def _should_refresh(symbol: str, local: pd.DataFrame | None, force: bool) -> bool:
     if force or local is None or local.empty:
         return True
+    last_date = local.index[-1].date()
+    if last_date >= _expected_session():
+        return False  # already current - no provider call needed
+
+    # Stale data is the important case: retry it even if an earlier attempt
+    # failed recently, but never hammer the provider more than every 15 min.
     meta = _read_meta().get(symbol, {})
     last_attempt = meta.get("last_attempt")
     if last_attempt:
         try:
-            elapsed = datetime.now(timezone.utc) - datetime.fromisoformat(last_attempt)
-            if elapsed.total_seconds() < REFRESH_TTL_HOURS * 3600:
+            elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last_attempt)).total_seconds()
+            if elapsed < RETRY_COOLDOWN_SECONDS:
                 return False
         except ValueError:
             pass
-    last_date = local.index[-1].date()
-    expected = datetime.now(timezone.utc).date() - timedelta(days=STALE_AFTER_DAYS)
-    return last_date < expected
+    return True
 
 
 def _mark_attempt(symbol: str) -> None:
@@ -324,14 +352,13 @@ def get_history(
         if local is None or local.empty:
             return HistoryResult(symbol, pd.DataFrame(), source="empty", error=error or "No data")
 
+        latest_date = local.index[-1].date()
         if start:
             local = local[local.index >= pd.Timestamp(start)]
         if end:
             local = local[local.index <= pd.Timestamp(end)]
 
-        stale = local.index[-1].date() < (
-            datetime.now(timezone.utc).date() - timedelta(days=STALE_AFTER_DAYS)
-        )
+        stale = latest_date < _expected_session()
         return HistoryResult(symbol, local, source=source, stale=stale,
                              last_updated=last_updated, error=error)
 
@@ -393,8 +420,7 @@ def status() -> dict:
             "rows": len(df) if df is not None else 0,
             "last_date": str(df.index[-1].date()) if df is not None else None,
             "last_success": info.get("last_success"),
-            "stale": bool(df is not None and df.index[-1].date() <
-                          datetime.now(timezone.utc).date() - timedelta(days=STALE_AFTER_DAYS)),
+            "stale": bool(df is not None and df.index[-1].date() < _expected_session()),
         })
     return {
         "data_dir": str(DATA_DIR),

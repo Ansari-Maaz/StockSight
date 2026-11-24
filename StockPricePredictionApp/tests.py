@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,6 +13,7 @@ import pandas as pd
 from django.test import Client, TestCase
 
 from StockPricePredictionApp.services import data as data_service
+from StockPricePredictionApp.services import news as news_service
 from StockPricePredictionApp.services import predictor
 
 
@@ -41,11 +42,14 @@ class TempDataMixin:
         self.data_dir.mkdir()
         self.model_dir = self.root / "models"
         self.model_dir.mkdir()
+        self.news_dir = self.root / "news"
+        self.news_dir.mkdir()
         predictor._MODEL_MEMORY.clear()
         self.patches = [
             patch.object(data_service, "DATA_DIR", self.data_dir),
             patch.object(data_service, "META_FILE", self.data_dir / "meta.json"),
             patch.object(predictor, "MODEL_DIR", self.model_dir),
+            patch.object(news_service, "NEWS_DIR", self.news_dir),
         ]
         for p in self.patches:
             p.start()
@@ -82,6 +86,14 @@ class DataRepositoryTests(TempDataMixin, unittest.TestCase):
         self.assertLess(result.rows, 320)
         self.assertGreater(result.rows, 0)
 
+    def test_stale_data_is_refreshed_even_after_recent_attempt(self):
+        data_service.save_local("TEST", synthetic_frame(days=320))
+        with patch.object(data_service, "_expected_session", return_value=date.today() + timedelta(days=2)):
+            self.assertTrue(data_service._should_refresh("TEST", data_service.load_local("TEST"), False))
+            meta = {"TEST": {"last_attempt": datetime.now(timezone.utc).isoformat()}}
+            with patch.object(data_service, "_read_meta", return_value=meta):
+                self.assertFalse(data_service._should_refresh("TEST", data_service.load_local("TEST"), False))
+
     def test_missing_symbol_returns_empty(self):
         result = data_service.get_history("DOESNOTEXIST", refresh="never")
         self.assertTrue(result.df.empty)
@@ -108,15 +120,100 @@ class PredictorTests(TempDataMixin, unittest.TestCase):
         np.testing.assert_allclose(first.predictions, second.predictions)
 
 
+class NewsServiceTests(TempDataMixin, unittest.TestCase):
+    def test_article_filters_quote_pages_and_parses_dates(self):
+        junk = news_service._article(
+            "Apple Inc. (AAPL) Stock Price, News, Quote & History",
+            "https://example.com", "Yahoo Finance", "Wed, 25 Nov 2026 12:00:00 GMT",
+        )
+        self.assertIsNone(junk)
+        self.assertIsNone(news_service._article(
+            "AA,NFLX,UAL,ZBH | Stock Prices | Quote Comparison - Yahoo Finance",
+            "https://example.com", "Yahoo Finance", "2026-11-25",
+        ))
+
+        article = news_service._article(
+            "Apple beats expectations on strong iPhone demand",
+            "https://example.com/story", "Reuters", "Wed, 25 Nov 2026 12:00:00 GMT",
+        )
+        self.assertEqual(article["publisher"], "Reuters")
+        self.assertEqual(article["published"], "25 Nov 2026")
+        self.assertTrue(article["published_iso"].startswith("2026-11-25"))
+
+    def test_dedupe_keeps_newest_first(self):
+        rows = [
+            news_service._article("Older Apple headline about services growth", "u1", "A", "2026-11-20T10:00:00Z"),
+            news_service._article("Newer Apple headline about iPhone demand", "u2", "B", "2026-11-25T10:00:00Z"),
+            news_service._article("Older Apple headline about services growth!", "u3", "C", "2026-11-21T10:00:00Z"),
+        ]
+        unique = news_service._dedupe(rows)
+        self.assertEqual(len(unique), 2)
+        self.assertEqual(unique[0]["publisher"], "B")
+
+    def test_yfinance_payload_shapes(self):
+        nested = news_service._normalise_yfinance_item({
+            "content": {
+                "title": "Nvidia unveils a new AI platform",
+                "pubDate": "2026-11-25T13:00:00Z",
+                "provider": {"displayName": "Yahoo Finance"},
+                "canonicalUrl": {"url": "https://example.com/nvda"},
+            }
+        })
+        self.assertEqual(nested["publisher"], "Yahoo Finance")
+        self.assertEqual(nested["link"], "https://example.com/nvda")
+
+        legacy = news_service._normalise_yfinance_item({
+            "title": "Microsoft expands its cloud regions",
+            "publisher": "Reuters",
+            "link": "https://example.com/msft",
+            "providerPublishTime": 1795600000,
+        })
+        self.assertEqual(legacy["publisher"], "Reuters")
+        self.assertEqual(legacy["link"], "https://example.com/msft")
+
+    def test_relevance_filters_out_general_market_headlines(self):
+        terms = news_service._relevance_terms("AAPL")
+        self.assertIn("aapl", terms)
+        self.assertIn("apple", terms)
+        self.assertTrue(news_service._is_relevant(
+            {"title": "Apple Stock Has 3 Things Going for It in 2027"}, terms))
+        self.assertTrue(news_service._is_relevant(
+            {"title": "Apple Inc. (AAPL) Delivered Strong Results"}, terms))
+        self.assertFalse(news_service._is_relevant(
+            {"title": "Why the Jensen Huang rally faded so quickly"}, terms))
+        self.assertFalse(news_service._is_relevant(
+            {"title": "At 63, a Robo-Adviser Bought You 11 Funds You Can't Explain"}, terms))
+
+    @patch.object(news_service, "_collect")
+    def test_news_is_cached_on_disk(self, mock_collect):
+        mock_collect.return_value = ([{
+            "title": "Tesla reports quarterly deliveries",
+            "link": "https://example.com/tsla",
+            "publisher": "Reuters",
+            "published": "25 Nov 2026",
+            "published_iso": "2026-11-25T12:00:00+00:00",
+            "published_ts": 1795600000,
+        }], ["yahoo"])
+
+        first = news_service.get_news("TSLA", limit=6)
+        self.assertEqual(len(first), 1)
+        self.assertTrue((self.news_dir / "TSLA.json").exists())
+
+        second = news_service.get_news("TSLA", limit=6)
+        self.assertEqual(second, first)
+        self.assertEqual(mock_collect.call_count, 1)
+
+
 class ViewSmokeTests(TempDataMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.client = Client()
 
+    @patch("StockPricePredictionApp.views.news_service.get_market_news", return_value=[])
     @patch("StockPricePredictionApp.views.news_service.get_news", return_value=[])
     @patch("StockPricePredictionApp.views._company_info", return_value={"sector": "Tech"})
     @patch("StockPricePredictionApp.views.market_service.screener")
-    def test_pages_render(self, mock_screener, _mock_info, _mock_news):
+    def test_pages_render(self, mock_screener, _mock_info, _mock_news, _mock_market_news):
         from django.core.paginator import Paginator
         page_obj = Paginator([{"symbol": "TEST"}], 10).get_page(1)
         mock_screener.return_value = {
@@ -125,10 +222,29 @@ class ViewSmokeTests(TempDataMixin, TestCase):
                       "stale": False, "live": True}],
             "page_obj": page_obj, "total": 1, "search": "",
         }
-        for url in ["/", "/compare/", "/predict/", "/stocks/", "/details/TEST/", "/health/", "/api-docs/"]:
+        for url in ["/", "/compare/", "/predict/", "/stocks/", "/details/TEST/", "/api-docs/"]:
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200, url)
+
+    def test_health_page_removed(self):
+        self.assertEqual(self.client.get("/health/").status_code, 404)
+
+    @patch("StockPricePredictionApp.views.news_service.get_market_news", return_value=[])
+    def test_first_visit_has_empty_symbol_inputs(self, _mock_market_news):
+        home = self.client.get("/")
+        self.assertEqual(home.context["symbol"], "")
+        self.assertContains(home, "Search a symbol to get started")
+        self.assertContains(home, 'name="company1" list="homeSymbols" value=""')
+
+        compare = self.client.get("/compare/")
+        self.assertEqual(compare.context["symbol1"], "")
+        self.assertEqual(compare.context["symbol2"], "")
+        self.assertContains(compare, "Choose two symbols to compare")
+
+        predict = self.client.get("/predict/")
+        self.assertEqual(predict.context["symbol"], "")
+        self.assertContains(predict, "What is AI Forecast?")
 
     def test_api_endpoints(self):
         self.assertEqual(self.client.get("/api/health/").status_code, 200)
