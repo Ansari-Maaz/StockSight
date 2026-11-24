@@ -1,0 +1,21 @@
+# Core web
+Django==5.2.19
+gunicorn==26.2.0
+dj-database-url==3.1.2
+
+# Data / market feed
+numpy==2.2.6
+pandas==2.3.3
+yfinance==1.8.0
+curl_cffi==0.17.0
+requests==2.34.2
+
+# Forecasting
+scikit-learn==1.7.2
+scipy==1.15.3
+joblib==1.6.0
+tensorflow==2.21.0
+keras==3.12.4
+h5py==3.14.0
+absl-py==2.5.1
+protobuf==7.36.2

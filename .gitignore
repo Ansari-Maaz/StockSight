@@ -1,0 +1,51 @@
+# ── Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.pip-cache/
+.pip-tmp/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Django / local state ────────────────────────────────────────────
+db.sqlite3
+*.sqlite3
+*.log
+staticfiles/
+
+# ── Secrets / environment ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Market data cache ───────────────────────────────────────────────
+data/market/.*.lock
+data/market/*.lock
+
+# ── Generated model artifacts ───────────────────────────────────────
+models/
+*.keras
+*.joblib
+
+# ── TensorFlow checkpoint leftovers ─────────────────────────────────
+/checkpoint
+/.index
+/.data-*
+/model.weights.h5
+/data.csv
+/Readme
+
+# ── Legacy template assets (unused) ─────────────────────────────────
+/static/assets/
+/static/contact/
+/screenshot/
+
+# ── OS / editor ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
