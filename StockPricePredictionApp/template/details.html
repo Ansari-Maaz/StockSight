@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Details{% endblock %}
+{% block title_crumb %}DETAILS{% endblock %}
+{% block heading %}{{ company|default:symbol|default:"Company" }}{% endblock %}
+
+{% block content %}
+
+  <!-- ── Company header ──────────────────────────────────────────── -->
+  <section class="panel company-head-panel">
+    <div class="company-id">
+      <div class="company-mark" aria-hidden="true">{{ symbol|default:"?"|slice:":2" }}</div>
+      <div>
+        <div class="hero-eyebrow"><span class="ticker">{{ symbol|default:"—" }}</span> · COMPANY PROFILE</div>
+        <h2 class="company-name">{{ company|default:symbol|default:"Unknown company" }}</h2>
+        <div class="company-tags">
+          {% if info.sector %}<span class="tag">{{ info.sector }}</span>{% endif %}
+          {% if info.industry %}<span class="tag">{{ info.industry }}</span>{% endif %}
+          {% if info.country %}<span class="tag">{{ info.country }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="company-actions">
+      <a class="btn btn-ghost" href="{% url 'predict' %}?symbol={{ symbol|default:'' }}">AI forecast ↗</a>
+      <form method="post" action="{% url 'predict' %}" class="inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="company1" value="{{ symbol|default:'' }}">
+        <input type="hidden" name="days" value="7">
+        <button type="submit" class="btn btn-primary">Run forecast</button>
+      </form>
+      <a class="btn btn-ghost" href="{% url 'download' '0' %}?symbol={{ symbol|default:'' }}">CSV ↓</a>
+    </div>
+  </section>
+
+  {% if info %}
+    <!-- ── Info grid ────────────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head"><div><h2 class="panel-title">Company information</h2><p class="panel-sub">Fundamentals and listing details</p></div></div>
+      <div class="info-grid">
+        <div class="info-cell"><span class="info-label">Sector</span><span class="info-value">{{ info.sector|default:"—" }}</span></div>
+        <div class="info-cell"><span class="info-label">Industry</span><span class="info-value">{{ info.industry|default:"—" }}</span></div>
+        <div class="info-cell"><span class="info-label">Country</span><span class="info-value">{{ info.country|default:"—" }}</span></div>
+        <div class="info-cell"><span class="info-label">Exchange</span><span class="info-value">{{ info.exchange|default:"—" }}</span></div>
+        <div class="info-cell"><span class="info-label">Currency</span><span class="info-value">{{ info.currency|default:"—" }}</span></div>
+        <div class="info-cell"><span class="info-label">Market cap</span><span class="info-value" data-shortnum>{{ info.marketCap|default:"—" }}</span></div>
+        <div class="info-cell info-cell-wide">
+          <span class="info-label">Website</span>
+          {% if info.website %}
+            <a class="info-value text-link" href="{{ info.website }}" target="_blank" rel="noopener noreferrer">{{ info.website }} ↗</a>
+          {% else %}
+            <span class="info-value muted">—</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if info.summary %}<p class="company-summary">{{ info.summary }}</p>{% endif %}
+    </section>
+  {% endif %}
+
+  {% if not has_data %}
+    <section class="empty-state panel">
+      <div class="empty-icon" aria-hidden="true">◈</div>
+      <h2>No price history for “{{ symbol|default:'this symbol' }}”</h2>
+      <p>{{ error|default:"Cache a symbol first, then its profile and charts will appear here." }}</p>
+      <div class="empty-actions">
+        <button type="button" class="btn btn-primary" data-refresh>Refresh data</button>
+        <a class="btn btn-ghost" href="{% url 'all_stocks' %}">Browse screener</a>
+      </div>
+    </section>
+  {% else %}
+
+    <!-- ── Stat cards ───────────────────────────────────────────── -->
+    <section class="grid grid-4">
+      <div class="stat-card accent-cyan">
+        <div class="stat-label">Last close</div>
+        <div class="stat-value">{{ quote.close|default:stats.last|floatformat:2|default:"—" }}</div>
+        <div class="stat-foot">{{ quote.date|default:stats.to_date|default:"—" }}</div>
+      </div>
+      <div class="stat-card accent-emerald">
+        <div class="stat-label">Day change</div>
+        <div class="stat-value {% if quote.change > 0 %}pos{% elif quote.change < 0 %}neg{% endif %}">{{ quote.change_pct|default:stats.day_change_pct|default:0|floatformat:2 }}%</div>
+        <div class="stat-foot">{{ quote.change|default:stats.day_change|default:0|floatformat:2 }} absolute</div>
+      </div>
+      <div class="stat-card accent-amber">
+        <div class="stat-label">Period range</div>
+        <div class="stat-value small">{{ stats.low|floatformat:2|default:"—" }} – {{ stats.high|floatformat:2|default:"—" }}</div>
+        <div class="stat-foot">{{ stats.from_date|default:"—" }} → {{ stats.to_date|default:"—" }}</div>
+      </div>
+      <div class="stat-card accent-violet">
+        <div class="stat-label">Avg volume</div>
+        <div class="stat-value" data-shortnum>{{ stats.avg_volume|default:"—" }}</div>
+        <div class="stat-foot">{{ stats.sessions|default:0 }} sessions</div>
+      </div>
+    </section>
+
+    <!-- ── Charts ───────────────────────────────────────────────── -->
+    <section class="grid grid-charts">
+      <div class="panel chart-panel">
+        <div class="panel-head">
+          <div><h2 class="panel-title">Price history</h2><p class="panel-sub">Daily closing price</p></div>
+          <span class="legend-dot cyan"></span>
+        </div>
+        <div class="chart-wrap"><canvas id="detailChart"></canvas></div>
+      </div>
+      <div class="panel chart-panel">
+        <div class="panel-head">
+          <div><h2 class="panel-title">Trading volume</h2><p class="panel-sub">Shares traded per session</p></div>
+          <span class="legend-dot emerald"></span>
+        </div>
+        <div class="chart-wrap"><canvas id="detailVolume"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ── News ─────────────────────────────────────────────────── -->
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2 class="panel-title">Latest news</h2><p class="panel-sub">Headlines for {{ symbol }}</p></div>
+        {% with src=history.source|default:"cache" %}
+          <span class="badge {% if src == 'live' %}badge-live{% elif src == 'legacy' %}badge-stale{% else %}badge-neutral{% endif %}">{{ src|upper }}</span>
+          {% if history.stale %}<span class="badge badge-stale">STALE</span>{% endif %}
+        {% endwith %}
+      </div>
+      <div class="news-list news-list-wide">
+        {% for n in news|slice:":8" %}
+          <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">
+            <span class="news-title">{{ n.title|default:"Untitled headline" }}</span>
+            <span class="news-meta">{{ n.publisher|default:"Source" }}{% if n.published %} · {{ n.published }}{% endif %}</span>
+          </a>
+        {% empty %}
+          <div class="muted news-empty">No recent headlines available.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+  {% endif %}
+{% endblock %}
+
+{% block chart_data %}
+  {% if has_data %}
+    {{ series|json_script:"mm-detail-series" }}
+    <script>
+      (function () {
+        var el = document.getElementById('mm-detail-series');
+        if (!el) return;
+        var s;
+        try { s = JSON.parse(el.textContent); } catch (e) { return; }
+        window.MM_CHART_DATA = window.MM_CHART_DATA || {};
+        window.MM_CHART_DATA.detail = {
+          type: 'line',
+          labels: s.labels || [],
+          datasets: [{
+            label: 'Close',
+            data: s.close || [],
+            borderColor: '#4f46e5',
+            backgroundColor: '#4f46e5',
+            fill: true,
+            borderWidth: 2
+          }]
+        };
+        window.MM_CHART_DATA.detailVolume = {
+          type: 'bar',
+          labels: s.labels || [],
+          datasets: [{
+            label: 'Volume',
+            data: s.volume || [],
+            borderColor: '#059669',
+            backgroundColor: 'rgba(52, 211, 153, .45)',
+            borderWidth: 1,
+            fill: false
+          }]
+        };
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

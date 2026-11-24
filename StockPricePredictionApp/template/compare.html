@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Compare{% endblock %}
+{% block title_crumb %}COMPARE{% endblock %}
+{% block heading %}{{ symbol1|default:"AAPL" }} vs {{ symbol2|default:"MSFT" }}{% endblock %}
+
+{% block content %}
+
+  <!-- ── Two-symbol controls ─────────────────────────────────────── -->
+  <section class="panel controls-panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">Compare two symbols</h2>
+        <p class="panel-sub">Overlay absolute prices or compare normalized performance (both start at 100).</p>
+      </div>
+      <span class="badge badge-neutral">Side by side</span>
+    </div>
+    <form class="form-row" method="post" action="{% url 'compare' %}">
+      {% csrf_token %}
+      <div class="field field-symbol">
+        <label for="company1">Symbol A</label>
+        <input type="text" id="company1" name="company1" value="{{ symbol1|default:'AAPL' }}" placeholder="e.g. AAPL" autocomplete="off">
+      </div>
+      <div class="field field-symbol">
+        <label for="company2">Symbol B</label>
+        <input type="text" id="company2" name="company2" value="{{ symbol2|default:'MSFT' }}" placeholder="e.g. MSFT" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="start_date">From</label>
+        <input type="date" id="start_date" name="start_date" value="{{ start|default:'' }}">
+      </div>
+      <div class="field">
+        <label for="close_date">To</label>
+        <input type="date" id="close_date" name="close_date" value="{{ end|default:'' }}">
+      </div>
+      <div class="field field-action">
+        <button type="submit" class="btn btn-primary">Compare</button>
+      </div>
+    </form>
+  </section>
+
+  {% if not has_data %}
+    <section class="empty-state panel">
+      <div class="empty-icon" aria-hidden="true">⇄</div>
+      <h2>Not enough overlapping data</h2>
+      <p>{{ error|default:"We need both symbols to have cached history over a common date range. Try a different pair or widen the dates." }}</p>
+      <div class="empty-actions">
+        <button type="button" class="btn btn-primary" data-refresh>Refresh data</button>
+        <a class="btn btn-ghost" href="{% url 'all_stocks' %}">Browse screener</a>
+      </div>
+    </section>
+  {% else %}
+
+    <!-- ── Side-by-side stats ───────────────────────────────────── -->
+    <section class="compare-grid">
+      <div class="compare-column accent-cyan">
+        <div class="compare-head">
+          <span class="compare-dot cyan"></span>
+          <span class="compare-symbol">{{ symbol1 }}</span>
+          {% with h=history.0 %}
+            <span class="badge {% if h.source == 'live' %}badge-live{% elif h.source == 'legacy' %}badge-stale{% else %}badge-neutral{% endif %}">{{ h.source|default:"cache"|upper }}</span>
+            {% if h.stale %}<span class="badge badge-stale">STALE</span>{% endif %}
+          {% endwith %}
+        </div>
+        <div class="quote-line">
+          <span class="quote-price">{{ quote1.close|default:stats1.last|floatformat:2|default:"—" }}</span>
+          <span class="{% if quote1.change > 0 %}pos{% elif quote1.change < 0 %}neg{% endif %}">
+            {{ quote1.change_pct|default:0|floatformat:2 }}%
+          </span>
+        </div>
+        <div class="grid grid-2 tight">
+          <div class="stat-card accent-cyan">
+            <div class="stat-label">Period high</div>
+            <div class="stat-value">{{ stats1.high|floatformat:2|default:"—" }}</div>
+          </div>
+          <div class="stat-card accent-cyan">
+            <div class="stat-label">Period low</div>
+            <div class="stat-value">{{ stats1.low|floatformat:2|default:"—" }}</div>
+          </div>
+          <div class="stat-card accent-cyan">
+            <div class="stat-label">Change</div>
+            <div class="stat-value {% if stats1.change_pct > 0 %}pos{% elif stats1.change_pct < 0 %}neg{% endif %}">{{ stats1.change_pct|floatformat:2|default:"—" }}%</div>
+          </div>
+          <div class="stat-card accent-cyan">
+            <div class="stat-label">Avg volume</div>
+            <div class="stat-value" data-shortnum>{{ stats1.avg_volume|default:"—" }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-column accent-violet">
+        <div class="compare-head">
+          <span class="compare-dot violet"></span>
+          <span class="compare-symbol">{{ symbol2 }}</span>
+          {% with h=history.1 %}
+            <span class="badge {% if h.source == 'live' %}badge-live{% elif h.source == 'legacy' %}badge-stale{% else %}badge-neutral{% endif %}">{{ h.source|default:"cache"|upper }}</span>
+            {% if h.stale %}<span class="badge badge-stale">STALE</span>{% endif %}
+          {% endwith %}
+        </div>
+        <div class="quote-line">
+          <span class="quote-price">{{ quote2.close|default:stats2.last|floatformat:2|default:"—" }}</span>
+          <span class="{% if quote2.change > 0 %}pos{% elif quote2.change < 0 %}neg{% endif %}">
+            {{ quote2.change_pct|default:0|floatformat:2 }}%
+          </span>
+        </div>
+        <div class="grid grid-2 tight">
+          <div class="stat-card accent-violet">
+            <div class="stat-label">Period high</div>
+            <div class="stat-value">{{ stats2.high|floatformat:2|default:"—" }}</div>
+          </div>
+          <div class="stat-card accent-violet">
+            <div class="stat-label">Period low</div>
+            <div class="stat-value">{{ stats2.low|floatformat:2|default:"—" }}</div>
+          </div>
+          <div class="stat-card accent-violet">
+            <div class="stat-label">Change</div>
+            <div class="stat-value {% if stats2.change_pct > 0 %}pos{% elif stats2.change_pct < 0 %}neg{% endif %}">{{ stats2.change_pct|floatformat:2|default:"—" }}%</div>
+          </div>
+          <div class="stat-card accent-violet">
+            <div class="stat-label">Avg volume</div>
+            <div class="stat-value" data-shortnum>{{ stats2.avg_volume|default:"—" }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Charts ───────────────────────────────────────────────── -->
+    <section class="grid grid-charts">
+      <div class="panel chart-panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Price overlay</h2>
+            <p class="panel-sub">{{ symbol1 }} vs {{ symbol2 }} · daily close</p>
+          </div>
+          <span class="legend-dot cyan"></span>
+        </div>
+        <div class="chart-wrap"><canvas id="compareChart"></canvas></div>
+      </div>
+      <div class="panel chart-panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Normalized performance</h2>
+            <p class="panel-sub">Rebased to 100 at period start</p>
+          </div>
+          <span class="legend-dot violet"></span>
+        </div>
+        <div class="chart-wrap"><canvas id="normChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ── News columns ─────────────────────────────────────────── -->
+    <section class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h2 class="panel-title">{{ symbol1 }} news</h2><p class="panel-sub">Recent headlines</p></div></div>
+        <div class="news-list">
+          {% for n in news1|slice:":5" %}
+            <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">
+              <span class="news-title">{{ n.title|default:"Untitled headline" }}</span>
+              <span class="news-meta">{{ n.publisher|default:"Source" }}{% if n.published %} · {{ n.published }}{% endif %}</span>
+            </a>
+          {% empty %}<div class="muted news-empty">No headlines available.</div>{% endfor %}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h2 class="panel-title">{{ symbol2 }} news</h2><p class="panel-sub">Recent headlines</p></div></div>
+        <div class="news-list">
+          {% for n in news2|slice:":5" %}
+            <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">
+              <span class="news-title">{{ n.title|default:"Untitled headline" }}</span>
+              <span class="news-meta">{{ n.publisher|default:"Source" }}{% if n.published %} · {{ n.published }}{% endif %}</span>
+            </a>
+          {% empty %}<div class="muted news-empty">No headlines available.</div>{% endfor %}
+        </div>
+      </div>
+    </section>
+
+  {% endif %}
+{% endblock %}
+
+{% block chart_data %}
+  {% if has_data %}
+    {{ series|json_script:"mm-compare-series" }}
+    <script>
+      (function () {
+        var el = document.getElementById('mm-compare-series');
+        if (!el) return;
+        var s;
+        try { s = JSON.parse(el.textContent); } catch (e) { return; }
+        window.MM_CHART_DATA = window.MM_CHART_DATA || {};
+        window.MM_CHART_DATA.compare = {
+          type: 'line',
+          labels: s.labels || [],
+          datasets: [
+            { label: '{{ symbol1|escapejs }}', data: s.close1 || [], borderColor: '#4f46e5', backgroundColor: '#4f46e5', fill: false, borderWidth: 2 },
+            { label: '{{ symbol2|escapejs }}', data: s.close2 || [], borderColor: '#7c3aed', backgroundColor: '#7c3aed', fill: false, borderWidth: 2 }
+          ]
+        };
+        window.MM_CHART_DATA.norm = {
+          type: 'line',
+          labels: s.labels || [],
+          datasets: [
+            { label: '{{ symbol1|escapejs }} (rebased)', data: s.normalised1 || [], borderColor: '#4f46e5', backgroundColor: '#4f46e5', fill: false, borderWidth: 2 },
+            { label: '{{ symbol2|escapejs }} (rebased)', data: s.normalised2 || [], borderColor: '#7c3aed', backgroundColor: '#7c3aed', fill: false, borderWidth: 2 }
+          ]
+        };
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

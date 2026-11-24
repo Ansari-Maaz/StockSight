@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}AI Forecast{% endblock %}
+{% block title_crumb %}AI FORECAST{% endblock %}
+{% block heading %}AI Forecast{% endblock %}
+
+{% block content %}
+  {% with maxd=max_days|default:90 %}
+
+  <!-- ── Forecast controls ───────────────────────────────────────── -->
+  <section class="panel controls-panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">Generate a forecast</h2>
+        <p class="panel-sub">Choose a symbol and horizon. Models are trained locally from cached data.</p>
+      </div>
+      <span class="badge badge-live"><span class="pulse"></span>On-device ML</span>
+    </div>
+    <form class="form-row" method="post" action="{% url 'predict' %}">
+      {% csrf_token %}
+      <div class="field field-symbol">
+        <label for="company1">Symbol</label>
+        <input type="text" id="company1" name="company1" value="{{ symbol|default:'AAPL' }}" placeholder="e.g. AAPL" autocomplete="off">
+      </div>
+      <div class="field field-range">
+        <label for="daysRange">Horizon <span class="accent-text">{{ days|default:7 }} days</span></label>
+        <div class="range-row">
+          <input type="range" id="daysRange" min="1" max="{{ maxd }}" value="{{ days|default:7 }}" aria-label="Forecast horizon">
+          <input type="number" id="daysNumber" name="days" min="1" max="{{ maxd }}" value="{{ days|default:7 }}" aria-label="Forecast days">
+        </div>
+      </div>
+      <div class="field field-action">
+        <button type="submit" class="btn btn-primary">Run forecast</button>
+      </div>
+    </form>
+  </section>
+
+  {% if error %}
+    <div class="alert alert-error">
+      <span class="alert-icon">!</span>
+      <div><strong>Forecast failed.</strong> {{ error }}</div>
+    </div>
+  {% endif %}
+
+  {% if has_result %}
+    <!-- ── Signal hero ─────────────────────────────────────────── -->
+    <section class="panel hero-card {% if result.signal == 'BUY' %}accent-emerald{% elif result.signal == 'SELL' %}accent-rose{% else %}accent-amber{% endif %}">
+      <div class="hero-main">
+        <div class="hero-eyebrow"><span class="ticker">{{ result.symbol|default:symbol }}</span> · AI SIGNAL</div>
+        <div class="signal-line">
+          <span class="badge badge-{% if result.signal == 'BUY' %}buy{% elif result.signal == 'SELL' %}sell{% else %}hold{% endif %} signal-badge">
+            {{ result.signal|default:"HOLD" }}
+          </span>
+          <span class="confidence">{% widthratio result.confidence 1 100 %}% confidence</span>
+        </div>
+        <div class="hero-meta">
+          Model: {{ result.model_type|default:"—" }}
+          {% if result.fresh %} · <span class="pos">trained this request</span>{% else %} · loaded from cache{% endif %}
+        </div>
+      </div>
+      <div class="hero-side">
+        <div class="hero-meta">Data through <strong>{{ result.data_through|default:"—" }}</strong></div>
+        <div class="hero-meta">Source: {{ result.data_source|default:"cache"|upper }}</div>
+        {% if result.stale %}<span class="badge badge-stale">STALE</span>{% elif result.fresh %}<span class="badge badge-live">FRESH MODEL</span>{% endif %}
+      </div>
+    </section>
+
+    <!-- ── Metric cards ─────────────────────────────────────────── -->
+    <section class="grid grid-4">
+      <div class="stat-card accent-cyan">
+        <div class="stat-label">RMSE</div>
+        <div class="stat-value">{{ result.metrics.rmse|floatformat:3|default:"—" }}</div>
+        <div class="stat-foot">vs naive {{ result.metrics.naive_rmse|floatformat:3|default:"—" }}</div>
+      </div>
+      <div class="stat-card accent-amber">
+        <div class="stat-label">MAPE</div>
+        <div class="stat-value">{{ result.metrics.mape|floatformat:2|default:"—" }}%</div>
+        <div class="stat-foot">Mean absolute % error</div>
+      </div>
+      <div class="stat-card accent-emerald">
+        <div class="stat-label">Direction accuracy</div>
+        <div class="stat-value">{% widthratio result.metrics.direction_accuracy 1 100 %}%</div>
+        <div class="stat-foot">{{ result.metrics.rmse_vs_naive|floatformat:1|default:"—" }}% vs naive</div>
+      </div>
+      <div class="stat-card accent-violet">
+        <div class="stat-label">Validation samples</div>
+        <div class="stat-value">{{ result.metrics.samples|default:"—" }}</div>
+        <div class="stat-foot">MAE {{ result.metrics.mae|floatformat:3|default:"—" }}</div>
+      </div>
+    </section>
+
+    <!-- ── Forecast chart ───────────────────────────────────────── -->
+    <section class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Forecast vs history</h2>
+          <p class="panel-sub">{{ days|default:7 }}-day projection with historical context</p>
+        </div>
+        <span class="badge badge-neutral">{{ result.dates|length }} future points</span>
+      </div>
+      <div class="chart-wrap chart-wrap-lg"><canvas id="forecastChart"></canvas></div>
+    </section>
+
+    <!-- ── Forecast table + note ────────────────────────────────── -->
+    <section class="grid grid-2">
+      <div class="panel">
+        <div class="panel-head"><div><h2 class="panel-title">Projected prices</h2><p class="panel-sub">Day-by-day model output</p></div></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Predicted</th><th>Change</th></tr></thead>
+            <tbody id="forecastBody"><tr><td colspan="3" class="muted center">Building table…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel note-panel">
+        <div class="panel-head"><div><h2 class="panel-title">About this model</h2><p class="panel-sub">Transparency notes</p></div></div>
+        <p class="note-text">
+          Model trained from <strong>local cached data</strong>, through
+          <strong>{{ result.data_through|default:"—" }}</strong>
+          ({{ result.data_source|default:"cache"|upper }}). Trained at
+          {{ result.trained_at|default:"unknown" }}.
+        </p>
+        {% if result.note %}<p class="note-text muted">{{ result.note }}</p>{% endif %}
+        <div class="note-divider"></div>
+        <p class="note-text muted">
+          Forecasts are statistical estimates, not investment advice. Backend fallback order:
+          <span class="accent-text">LSTM → Gradient Boosting → NumPy</span>.
+        </p>
+      </div>
+    </section>
+
+  {% else %}
+    <!-- ── No result: explainer ─────────────────────────────────── -->
+    <section class="empty-state panel">
+      <div class="empty-icon" aria-hidden="true">✦</div>
+      <h2>Turn history into a projection</h2>
+      <p>Submit a symbol above to train a model on locally cached prices and preview the next trading days.</p>
+      <div class="backend-grid">
+        <div class="backend-card">
+          <span class="backend-num">01</span>
+          <strong>LSTM</strong>
+          <span>TensorFlow neural network for sequence learning (preferred).</span>
+        </div>
+        <div class="backend-card">
+          <span class="backend-num">02</span>
+          <strong>Gradient Boosting</strong>
+          <span>scikit-learn trees — fast fallback when TensorFlow is unavailable.</span>
+        </div>
+        <div class="backend-card">
+          <span class="backend-num">03</span>
+          <strong>NumPy</strong>
+          <span>Lightweight regression fallback that always runs locally.</span>
+        </div>
+      </div>
+    </section>
+
+    {% if cached_models %}
+      <section class="panel">
+        <div class="panel-head"><div><h2 class="panel-title">Cached models</h2><p class="panel-sub">Previously trained on this machine</p></div></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Symbol</th><th>Backend</th><th>Trained at</th><th></th></tr></thead>
+            <tbody>
+              {% for m in cached_models %}
+                <tr>
+                  <td><strong>{{ m.symbol|default:"—" }}</strong></td>
+                  <td>{{ m.backend|default:"—" }}</td>
+                  <td class="muted">{{ m.trained_at|default:"—" }}</td>
+                  <td>
+                    <form method="post" action="{% url 'predict' %}" class="inline-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="company1" value="{{ m.symbol|default:'' }}">
+                      <input type="hidden" name="days" value="{{ days|default:7 }}">
+                      <button type="submit" class="text-link link-button">Re-run →</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  {% endwith %}
+{% endblock %}
+
+{% block chart_data %}
+  {% if has_result %}
+    {{ result|json_script:"mm-forecast" }}
+    <script>
+      (function () {
+        var el = document.getElementById('mm-forecast');
+        if (!el) return;
+        var r;
+        try { r = JSON.parse(el.textContent); } catch (e) { return; }
+        window.MM_CHART_DATA = window.MM_CHART_DATA || {};
+        window.MM_CHART_DATA.forecast = {
+          history_dates: r.history_dates || [],
+          history_close: r.history_close || [],
+          dates: r.dates || [],
+          predictions: r.predictions || []
+        };
+      })();
+    </script>
+  {% endif %}
+{% endblock %}

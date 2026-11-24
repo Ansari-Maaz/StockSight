@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Market Screener{% endblock %}
+{% block title_crumb %}SCREENER{% endblock %}
+{% block heading %}Market Screener{% endblock %}
+
+{% block content %}
+
+  <!-- ── Search + count ──────────────────────────────────────────── -->
+  <section class="panel controls-panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">Market screener</h2>
+        <p class="panel-sub">Browse cached symbols with the latest quote and daily change.</p>
+      </div>
+      <span class="badge badge-neutral">{{ total|default:0 }} symbols</span>
+    </div>
+    <form class="form-row" method="get" action="{% url 'all_stocks' %}">
+      <div class="field field-grow">
+        <label for="search">Search by symbol or company</label>
+        <input type="search" id="search" name="search" value="{{ search|default:'' }}" placeholder="e.g. apple, NVDA…" autocomplete="off">
+      </div>
+      <div class="field field-action">
+        <button type="submit" class="btn btn-primary">Search</button>
+        {% if search %}<a class="btn btn-ghost" href="{% url 'all_stocks' %}">Clear</a>{% endif %}
+      </div>
+    </form>
+  </section>
+
+  {% if rows %}
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Results</h2>
+          <p class="panel-sub">
+            Showing {{ rows|length }} of {{ total|default:0 }}
+            {% if page_obj %}· page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}{% endif %}
+          </p>
+        </div>
+        <a class="text-link" href="{% url 'download' '4' %}?search={{ search|urlencode }}">Export CSV ↓</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table table-screener">
+          <thead>
+            <tr>
+              <th>Symbol</th><th>Name</th><th>Country</th><th class="num">Close</th>
+              <th class="num">Change</th><th class="num">% Change</th><th>Industry</th><th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td><a class="symbol-link" href="{% url 'details' row.symbol %}">{{ row.symbol|default:"—" }}</a></td>
+                <td class="truncate" title="{{ row.name|default:'' }}">{{ row.name|default:"—" }}</td>
+                <td class="muted">{{ row.country|default:"—" }}</td>
+                <td class="num">{{ row.close|default:"—" }}</td>
+                <td class="num" data-num>{{ row.change|default:"—" }}</td>
+                <td class="num" data-num>{{ row.change_pct|default:"—" }}%</td>
+                <td class="muted truncate" title="{{ row.industry|default:'' }}">{{ row.industry|default:"—" }}</td>
+                <td>
+                  {% if row.live %}
+                    <span class="badge badge-live"><span class="pulse"></span>LIVE</span>
+                  {% elif row.stale %}
+                    <span class="badge badge-stale">STALE</span>
+                  {% else %}
+                    <span class="badge badge-neutral">CACHE</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if page_obj and page_obj.paginator.num_pages > 1 %}
+        <div class="pagination">
+          {% if page_obj.has_previous %}
+            <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&amp;search={{ search|urlencode }}">← Prev</a>
+          {% else %}
+            <span class="page-btn disabled">← Prev</span>
+          {% endif %}
+
+          <div class="page-numbers">
+            {% for n in page_obj.paginator.page_range %}
+              {% if n == page_obj.number %}
+                <span class="page-btn active">{{ n }}</span>
+              {% elif n <= page_obj.number|add:2 and n >= page_obj.number|add:-2 %}
+                <a class="page-btn" href="?page={{ n }}&amp;search={{ search|urlencode }}">{{ n }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          {% if page_obj.has_next %}
+            <a class="page-btn" href="?page={{ page_obj.next_page_number }}&amp;search={{ search|urlencode }}">Next →</a>
+          {% else %}
+            <span class="page-btn disabled">Next →</span>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+  {% else %}
+    <section class="empty-state panel">
+      <div class="empty-icon" aria-hidden="true">⌕</div>
+      <h2>No symbols found</h2>
+      <p>{% if search %}Nothing matches “{{ search }}”. Try a shorter query or a ticker symbol.{% else %}The screener universe is empty. Refresh the data feed to populate it.{% endif %}</p>
+      <div class="empty-actions">
+        <button type="button" class="btn btn-primary" data-refresh>Refresh data</button>
+        <a class="btn btn-ghost" href="{% url 'all_stocks' %}">Show all</a>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}
