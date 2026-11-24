@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#f4f6fb">
-  <meta name="description" content="MarketMind — modern market intelligence, screening and AI forecasting.">
-  <title>{% block title %}Overview{% endblock %} · {{ app_name|default:"MarketMind" }}</title>
+  <meta name="description" content="StockSight — modern market intelligence, screening and AI forecasting.">
+  <title>{% block title %}Overview{% endblock %} · {{ app_name|default:"StockSight" }}</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <script>
     /* Apply saved preferences before first paint (no theme/sidebar flash). */
@@ -34,11 +34,13 @@
     <!-- ══════════════════════════ Sidebar ══════════════════════════ -->
     <aside class="sidebar">
       <div class="sidebar-top">
-        <a class="brand" href="{% url 'home' %}" aria-label="MarketMind home">
-          <span class="brand-mark" aria-hidden="true">◈</span>
+        <a class="brand" href="{% url 'home' %}" aria-label="StockSight home">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="{% static 'logo.svg' %}" alt="" width="36" height="36">
+          </span>
           <span class="brand-text">
-            <span class="brand-name">{{ app_name|default:"MarketMind" }}</span>
-            <span class="brand-sub">MARKET INTELLIGENCE</span>
+            <span class="brand-name">{{ app_name|default:"StockSight" }}</span>
+            <span class="brand-sub">AI MARKET INTELLIGENCE</span>
           </span>
         </a>
         <button type="button" class="sidebar-toggle" id="sidebarToggle"
@@ -74,12 +76,6 @@
 
         <div class="nav-label">SYSTEM</div>
 
-        <a class="nav-link{% if nav_active == 'health' %} active{% endif %}" href="{% url 'health' %}" title="Data Health">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-7 4 14 2.5-7h5"/></svg>
-          <span>Data Health</span>
-          {% if market.stale_count %}<span class="nav-dot warn" aria-label="stale data"></span>{% else %}<span class="nav-dot" aria-label="healthy"></span>{% endif %}
-        </a>
-
         <a class="nav-link{% if nav_active == 'api' %} active{% endif %}" href="{% url 'api_docs' %}" title="API Docs">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8.5 8-4 4 4 4"/><path d="m15.5 8 4 4-4 4"/><path d="m13.5 5-3 14"/></svg>
           <span>API Docs</span>
@@ -106,7 +102,7 @@
           </div>
           <div class="status-stamp">Rendered {{ rendered_at|default:"just now" }}</div>
         </div>
-        <div class="sidebar-legal">© 2026 MarketMind · Local data</div>
+        <div class="sidebar-legal">© 2026 StockSight · Local data</div>
       </div>
     </aside>
 
@@ -114,7 +110,7 @@
     <div class="main">
       <header class="topbar">
         <div class="topbar-title">
-          <div class="eyebrow">MARKETMIND / {% block title_crumb %}DASHBOARD{% endblock %}</div>
+          <div class="eyebrow">STOCKSIGHT / {% block title_crumb %}DASHBOARD{% endblock %}</div>
           <h1 class="page-title">{% block heading %}Overview{% endblock %}</h1>
         </div>
 
@@ -138,7 +134,7 @@
             <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7Z"/></svg>
           </button>
 
-          <span class="version-pill" title="Application version">v2.4.0</span>
+          <span class="version-pill" title="Application version">v3.0.0</span>
 
           <button type="button" class="btn btn-ghost refresh-btn" id="refreshBtn" data-refresh title="Refresh cached market data">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-13.7-5.3L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 13.7 5.3L20 16"/><path d="M20 20v-4h-4"/></svg>
@@ -152,7 +148,7 @@
       </main>
 
       <footer class="app-footer">
-        <span>MarketMind · locally cached market intelligence</span>
+        <span>StockSight · locally cached market intelligence</span>
         <span>Not investment advice · data may be delayed</span>
       </footer>
     </div>

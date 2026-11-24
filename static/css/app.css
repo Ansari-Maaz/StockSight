@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MarketMind — light premium dashboard
+   StockSight — light premium dashboard
    Hand-written, dependency-free stylesheet. Fonts are bundled locally.
    ========================================================================== */
 
@@ -206,14 +206,12 @@ body {
 .sidebar-toggle .icon-expand { display: none; }
 .sidebar-toggle:hover { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-line); }
 .brand-mark {
-  display: grid; place-items: center;
+  display: block;
   width: 36px; height: 36px; flex: 0 0 36px;
-  border-radius: 12px;
-  font-size: 21px; line-height: 1;
-  color: #fff;
-  background: linear-gradient(140deg, #6366f1, #4338ca 62%, #7c3aed);
+  border-radius: 12px; overflow: hidden;
   box-shadow: 0 8px 20px -6px rgba(79, 70, 229, .55);
 }
+.brand-mark img { display: block; width: 100%; height: 100%; }
 .brand-text { display: flex; flex-direction: column; min-width: 0; }
 .brand-name { font-size: 16px; font-weight: 800; letter-spacing: -.035em; color: var(--text); white-space: nowrap; }
 .brand-sub { font-size: 7.5px; font-weight: 800; letter-spacing: .12em; color: var(--dim); margin-top: 2px; white-space: nowrap; }
@@ -616,6 +614,11 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
 .empty-state h2 { font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
 .empty-state p { max-width: 520px; margin: 9px auto 0; color: var(--muted); font-size: 13px; }
 .empty-actions { display: flex; gap: 9px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+.empty-logo {
+  display: block; width: 64px; height: 64px; margin: 0 auto 18px;
+  border-radius: 18px; box-shadow: 0 16px 32px -14px rgba(79, 70, 229, .55);
+}
+.welcome-panel .chip-row { justify-content: center; margin-top: 18px; }
 
 /* ── Compare layout ───────────────────────────────────────────────── */
 .compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -732,7 +735,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
     box-shadow: 0 4px 18px -12px rgba(15, 23, 42, .3); overflow: visible;
   }
   .brand { padding: 0; flex: 0 0 auto; }
-  .brand-mark { width: 32px; height: 32px; flex-basis: 32px; font-size: 18px; }
+  .brand-mark { width: 32px; height: 32px; flex-basis: 32px; }
   .brand-name { font-size: 14px; }
   .brand-sub { display: none; }
   .sidebar-nav { flex: 1 1 auto; flex-direction: row; align-items: center; gap: 4px; overflow-x: auto; padding: 2px; scrollbar-width: none; }

@@ -1,4 +1,4 @@
-"""Django settings for the MarketMind project.
+"""Django settings for the StockSight project.
 
 Configuration is environment-driven so the same code runs locally and in
 production (gunicorn/Docker). See .env.example and Readme.md.
@@ -98,10 +98,12 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-APP_NAME = "MarketMind"
+APP_NAME = "StockSight"
 MARKET_DATA_DIR = Path(env("MARKET_DATA_DIR", str(BASE_DIR / "data" / "market")))
 MARKET_UNIVERSE_CSV = Path(env("MARKET_UNIVERSE_CSV", str(BASE_DIR / "all_stockss.csv")))
 MARKET_REFRESH_TTL_HOURS = env("MARKET_REFRESH_TTL_HOURS", "1", float)
+NEWS_DIR = Path(env("NEWS_DIR", str(BASE_DIR / "data" / "news")))
+NEWS_TTL_HOURS = env("NEWS_TTL_HOURS", "6", float)
 MODEL_DIR = Path(env("MODEL_DIR", str(BASE_DIR / "models")))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

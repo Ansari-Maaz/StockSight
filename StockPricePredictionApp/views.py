@@ -85,33 +85,44 @@ def _json_body(request) -> dict:
 # Pages
 # --------------------------------------------------------------------------- #
 def home(request):
-    symbol = data_service.normalize_symbol(
-        request.POST.get("company1") or request.GET.get("symbol") or DEFAULT_SYMBOL
-    )
+    raw_symbol = request.POST.get("company1") or request.GET.get("symbol") or ""
+    symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""
     start = request.GET.get("start") or request.POST.get("start_date")
     end = request.GET.get("end") or request.POST.get("close_date")
 
-    history = data_service.get_history(symbol, start=start, end=end)
-    df = history.df
-    quote = data_service.get_quote(symbol, refresh="never") if not df.empty else {}
-    if df.empty:
-        quote = {"symbol": symbol, **history.as_dict()}
+    if symbol:
+        history = data_service.get_history(symbol, start=start, end=end)
+        df = history.df
+        quote = data_service.get_quote(symbol, refresh="never") if not df.empty else {}
+        if df.empty:
+            quote = {"symbol": symbol, **history.as_dict()}
+        series = _series(df.tail(252)) if not df.empty else _series(pd.DataFrame(
+            columns=data_service.REQUIRED_COLUMNS, index=pd.DatetimeIndex([])
+        ))
+        news = news_service.get_news(symbol) if not df.empty else []
+        suggestions = [{**s, "label": s["Symbol"]} for s in market_service.search_universe(symbol)]
+        has_data = not df.empty
+        error = history.error if not has_data else None
+    else:
+        history = data_service.HistoryResult("", pd.DataFrame(), source="empty")
+        df = history.df
+        quote, series, news, suggestions = {}, _series(pd.DataFrame(
+            columns=data_service.REQUIRED_COLUMNS, index=pd.DatetimeIndex([]))), [], []
+        has_data, error = False, None
 
-    series = _series(df.tail(252)) if not df.empty else _series(pd.DataFrame(
-        columns=data_service.REQUIRED_COLUMNS, index=pd.DatetimeIndex([])
-    ))
     context = {
         "nav_active": "home",
         "symbol": symbol,
         "company": symbol,
         "series": series,
-        "stats": _stats(df, quote),
+        "stats": _stats(df, quote) if has_data else {},
         "quote": quote,
-        "news": news_service.get_news(symbol) if not df.empty else [],
+        "news": news,
+        "market_news": news_service.get_market_news() if not symbol else [],
         "history": history.as_dict(),
-        "has_data": not df.empty,
-        "error": history.error if df.empty else None,
-        "suggestions": [{**s, "label": s["Symbol"]} for s in market_service.search_universe(symbol)],
+        "has_data": has_data,
+        "error": error,
+        "suggestions": suggestions,
         "watchlist": WATCHLIST,
         "start": start or "",
         "end": end or "",
@@ -120,16 +131,24 @@ def home(request):
 
 
 def compare(request):
-    symbol1 = data_service.normalize_symbol(request.POST.get("company1") or request.GET.get("a") or "AAPL")
-    symbol2 = data_service.normalize_symbol(request.POST.get("company2") or request.GET.get("b") or "MSFT")
+    raw1 = request.POST.get("company1") or request.GET.get("a") or ""
+    raw2 = request.POST.get("company2") or request.GET.get("b") or ""
+    symbol1 = data_service.normalize_symbol(raw1) if str(raw1).strip() else ""
+    symbol2 = data_service.normalize_symbol(raw2) if str(raw2).strip() else ""
+    has_selection = bool(symbol1 and symbol2)
+
     start = request.POST.get("start_date") or request.GET.get("start") or (
         date.today() - timedelta(days=365 * 2)
     ).strftime("%Y-%m-%d")
     end = request.POST.get("close_date") or request.GET.get("end") or date.today().strftime("%Y-%m-%d")
 
-    h1 = data_service.get_history(symbol1, start=start, end=end)
-    h2 = data_service.get_history(symbol2, start=start, end=end)
-    df1, df2 = h1.df, h2.df
+    if has_selection:
+        h1 = data_service.get_history(symbol1, start=start, end=end)
+        h2 = data_service.get_history(symbol2, start=start, end=end)
+        df1, df2 = h1.df, h2.df
+    else:
+        h1 = h2 = None
+        df1 = df2 = pd.DataFrame(columns=data_service.REQUIRED_COLUMNS)
 
     if not df1.empty and not df2.empty:
         common = df1.index.intersection(df2.index)
@@ -147,41 +166,47 @@ def compare(request):
         b = df2 if not df2.empty else pd.DataFrame(columns=data_service.REQUIRED_COLUMNS)
         series = {"labels": [], "close1": [], "close2": [], "normalised1": [], "normalised2": []}
 
-    q1 = data_service.get_quote(symbol1, refresh="never")
-    q2 = data_service.get_quote(symbol2, refresh="never")
+    q1 = data_service.get_quote(symbol1, refresh="never") if not a.empty else {}
+    q2 = data_service.get_quote(symbol2, refresh="never") if not b.empty else {}
+    has_data = has_selection and not a.empty and not b.empty
     context = {
         "nav_active": "compare",
         "symbol1": symbol1, "symbol2": symbol2,
+        "has_selection": has_selection,
         "start": start, "end": end,
         "series": series,
         "stats1": _stats(a, q1), "stats2": _stats(b, q2),
         "quote1": q1, "quote2": q2,
         "news1": news_service.get_news(symbol1) if not a.empty else [],
         "news2": news_service.get_news(symbol2) if not b.empty else [],
-        "history": [h1.as_dict(), h2.as_dict()],
-        "has_data": not a.empty and not b.empty,
-        "error": (h1.error if df1.empty else h2.error) if (df1.empty or df2.empty) else None,
+        "history": [h1.as_dict(), h2.as_dict()] if has_selection else [],
+        "has_data": has_data,
+        "error": (h1.error if df1.empty else h2.error) if has_selection and (df1.empty or df2.empty) else None,
     }
     return render(request, "compare.html", context)
 
 
 def predict_view(request):
     """Forecast page. Training only happens on POST so GET stays instant."""
-    symbol = DEFAULT_SYMBOL
+    symbol = ""
     days = 7
     result = None
     error = None
     if request.method == "POST":
-        symbol = data_service.normalize_symbol(request.POST.get("company1") or DEFAULT_SYMBOL)
+        raw_symbol = request.POST.get("company1") or ""
+        symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""
         try:
             days = int(request.POST.get("days") or 7)
         except (TypeError, ValueError):
             days = 7
-        try:
-            result = predictor.predict(symbol, days=days).as_dict()
-        except Exception as exc:
-            logger.exception("Prediction failed for %s", symbol)
-            error = str(exc)
+        if not symbol:
+            error = "Enter a stock symbol to run a forecast."
+        else:
+            try:
+                result = predictor.predict(symbol, days=days).as_dict()
+            except Exception as exc:
+                logger.exception("Prediction failed for %s", symbol)
+                error = str(exc)
 
     cached = []
     for path in predictor.MODEL_DIR.glob("*.meta.json") if predictor.MODEL_DIR.exists() else []:
@@ -241,25 +266,10 @@ def details(request, id):
     })
 
 
-def health(request):
-    return render(request, "health.html", {
-        "nav_active": "health",
-        "status": data_service.status(),
-        "models": sorted(
-            [{"symbol": json.loads(p.read_text()).get("symbol"),
-              "backend": json.loads(p.read_text()).get("backend"),
-              "trained_at": json.loads(p.read_text()).get("trained_at")}
-             for p in predictor.MODEL_DIR.glob("*.meta.json")]
-            if predictor.MODEL_DIR.exists() else [],
-            key=lambda m: m["symbol"] or "",
-        ),
-    })
-
-
 def download(request, id):
     """CSV export: history (0/1/2), predictions (3), or screener (4)."""
     response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="marketmind_export.csv"'
+    response["Content-Disposition"] = 'attachment; filename="stocksight_export.csv"'
     writer = csv.writer(response)
     symbol = data_service.normalize_symbol(request.GET.get("symbol") or DEFAULT_SYMBOL)
 

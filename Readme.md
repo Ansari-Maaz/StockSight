@@ -1,4 +1,4 @@
-# MarketMind
+# StockSight
 
 A production-ready stock analytics and forecasting dashboard built with **Django 5**, **yfinance**, **pandas**, and a **TensorFlow LSTM** (with automatic CPU fallbacks). It runs entirely from a local market-data cache, keeps that cache up to date automatically, and works offline when the data provider is unavailable.
 
@@ -11,10 +11,11 @@ A production-ready stock analytics and forecasting dashboard built with **Django
 | Feature | Details |
 |---|---|
 | **Local-first data** | One CSV per ticker in `data/market/`. Pages work with zero network access. |
-| **Always up to date** | Stale symbols are incrementally refreshed from yfinance on demand (rate-limited to once/hour), plus `refresh_data` for cron/Celery/Docker. |
+| **Always up to date** | Stale symbols are incrementally refreshed from yfinance as soon as a new trading session is expected, plus `refresh_data` for cron/Celery/Docker. |
+| **Daily stock news** | Yahoo Finance RSS + Google News RSS + yfinance, deduplicated and cached per symbol; optional Finnhub/NewsAPI keys. Shown on the overview, details and compare pages. |
 | **Forecasting** | LSTM → scikit-learn Gradient Boosting → NumPy regression, automatic fallback chain. Models are trained **from your data**, cached by fingerprint, and reused. |
 | **Honest metrics** | RMSE, MAE, MAPE, directional accuracy and a naive-baseline comparison on a chronological holdout. |
-| **No secret keys required** | Headlines come from yfinance; NewsAPI is optional via `NEWS_API_KEY`. |
+| **No secret keys required** | All core features work without API keys; Finnhub/NewsAPI are optional upgrades. |
 | **Modern UI** | Responsive dashboard with **light/dark theme toggle** (persisted in `localStorage`), a **collapsible sidebar**, locally bundled Plus Jakarta Sans + JetBrains Mono fonts, indigo/violet palette, semantic colour coding, and Chart.js charts that re-theme with the active mode (vendored locally). No CDN dependency at runtime. |
 | **JSON API** | `/api/history/`, `/api/quote/`, `/api/predict/`, `/api/search/`, `/api/health/`, `/api/refresh/`. |
 | **Production bits** | Env-driven settings, security headers, gunicorn, Dockerfile + compose, cron example, logging, tests. |
@@ -53,9 +54,10 @@ python manage.py seed_data --symbol AAPL --offline   # show cache status without
 ## How "always up to date" works
 
 1. `services/data.py:get_history()` reads `data/market/<SYMBOL>.csv`.
-2. If the last row is older than the last expected trading day (3-day grace for weekends/holidays), it fetches only the missing tail from yfinance, merges, and atomically replaces the file.
+2. If the last row is older than the most recent expected US trading session (weekends and pre-close hours handled automatically), it fetches only the missing tail from yfinance, merges, and atomically replaces the file.
 3. Attempts are throttled via `data/market/meta.json` (`MARKET_REFRESH_TTL_HOURS`, default 1). Concurrent requests are serialized with a per-symbol file lock, so gunicorn workers are safe.
 4. If the network fails, the cached file is still served and flagged `stale` in the UI/API — the app never hard-fails because a provider is down.
+5. On every page view the cache is checked again, so a deployment used months later automatically pulls the current data instead of showing a frozen snapshot.
 
 Keep a long-running deployment current with **any** of:
 
@@ -63,12 +65,34 @@ Keep a long-running deployment current with **any** of:
 # Cron (see crontab.example)
 30 18 * * 1-5 cd /app && .venv/bin/python manage.py refresh_data
 
-# Docker Compose includes a "refresher" service that runs this daily
+# Docker Compose includes a "refresher" service that runs this hourly
 
 # Or hit POST /api/refresh/ from the dashboard's "Refresh" button
 ```
 
 To add more tickers, just request them in the UI or run `python manage.py seed_data NVDA AMD ...`. The bundled `all_stockss.csv` (~8,200 symbols) is used as an offline screener fallback; its values are a snapshot, and live quotes replace them as soon as data is cached.
+
+---
+
+## Daily news pipeline
+
+`services/news.py` merges several providers so the news panels never depend on a single feed:
+
+1. **Yahoo Finance RSS** headline feed for the ticker (keyless).
+2. **yfinance** news payload (new `content` shape and legacy shape).
+3. **Google News RSS** fallback, with quote/history pages filtered out.
+4. **Finnhub** company news when `FINNHUB_API_KEY` is set.
+5. **NewsAPI** when `NEWS_API_KEY` is set.
+
+Articles are normalized, deduplicated by title, sorted by publication time and cached atomically in `data/news/<SYMBOL>.json`. The cache is refreshed after `NEWS_TTL_HOURS` (default 6), and `refresh_data` also refreshes news by default:
+
+```bash
+python manage.py refresh_news                       # every cached symbol
+python manage.py refresh_news AAPL MSFT --force     # specific tickers
+python manage.py refresh_news --market              # broad market headlines
+```
+
+The overview, details and compare pages all read from this cache, so every visitor sees the same recent stock-specific headlines.
 
 ---
 
@@ -84,6 +108,10 @@ To add more tickers, just request them in the UI or run `python manage.py seed_d
 6. Cache the model + scaler under `models/` keyed by a fingerprint of `(symbol, row count, last date, backend, window)`. New data automatically invalidates the cache.
 
 If TensorFlow is missing or training fails, it falls back to `HistGradientBoostingRegressor`, then to a NumPy ridge solution. You can force a backend with `--backend sklearn` or `{"backend": "sklearn"}`.
+
+### What the AI Forecast means
+
+"AI Forecast" is a statistical projection, not a prediction with guaranteed outcomes. The model learns patterns from the stock's own historical daily closing prices and extrapolates the next 1–90 trading days. The **BUY / SELL / HOLD** signal compares the projected price path with the model's validated directional accuracy and the latest close. Metrics (RMSE, MAE, MAPE, directional accuracy, naive-baseline comparison) are computed on a chronological holdout so you can judge whether the model is actually useful. The forecast is automatically retrained whenever fresh market data changes the model fingerprint; otherwise the cached model is reused. **It is not investment advice.**
 
 CLI:
 
@@ -103,7 +131,6 @@ python manage.py train_model TSLA --backend sklearn --days 14 --offline
 | AI Forecast | `/predict/` | Train/load model, forecast, metrics, signal |
 | Screener | `/stocks/` | Paginated ~8,200-symbol universe with live quotes |
 | Details | `/details/AAPL/` | Company info, full chart, news |
-| Data Health | `/health/` | Cache freshness and trained-model inventory |
 | API Docs | `/api-docs/` | Endpoint reference |
 
 ```bash
@@ -140,6 +167,6 @@ gunicorn StockPricePrediction.wsgi:application --bind 0.0.0.0:8000 --workers 2 -
 
 Or `docker compose up --build -d`. Serve `staticfiles/` with nginx in front of gunicorn. For Postgres, set `DB_ENGINE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` (install `psycopg2-binary` when using Postgres).
 
-Environment variables (all optional for local dev): `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DB_*`, `MARKET_DATA_DIR`, `MODEL_DIR`, `MARKET_UNIVERSE_CSV`, `MARKET_REFRESH_TTL_HOURS`, `NEWS_API_KEY`, `LOG_LEVEL`.
+Environment variables (all optional for local dev): `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DB_*`, `MARKET_DATA_DIR`, `MODEL_DIR`, `MARKET_UNIVERSE_CSV`, `MARKET_REFRESH_TTL_HOURS`, `NEWS_DIR`, `NEWS_TTL_HOURS`, `FINNHUB_API_KEY`, `NEWS_API_KEY`, `LOG_LEVEL`.
 
 > **Disclaimer:** forecasts are a demonstration of the ML pipeline, not financial advice.

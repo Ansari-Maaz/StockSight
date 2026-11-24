@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MarketMind — front-end behaviour (vanilla JS, global Chart.js only)
+   StockSight — front-end behaviour (vanilla JS, global Chart.js only)
    Reads window.MM_CHART_DATA, mounted on DOMContentLoaded.
    ========================================================================== */
 (function () {

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="StockSight">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset=".52" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="line" x1="21" y1="39" x2="44" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <path d="M10.5 32c5.2-8.7 12.4-13.1 21.5-13.1S48.3 23.3 53.5 32c-5.2 8.7-12.4 13.1-21.5 13.1S15.7 40.7 10.5 32Z"
+        fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linejoin="round"/>
+  <path d="M22.2 38.1l5.5-6.8 4.4 3.2 7.6-9.7"
+        fill="none" stroke="url(#line)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="39.9" cy="24.7" r="2.6" fill="#ffffff"/>
+</svg>

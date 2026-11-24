@@ -3,7 +3,7 @@
 
 {% block title %}Overview{% endblock %}
 {% block title_crumb %}OVERVIEW{% endblock %}
-{% block heading %}{{ symbol|default:"AAPL" }} · Market Overview{% endblock %}
+{% block heading %}{% if symbol %}{{ symbol }} · Market Overview{% else %}Market Overview{% endif %}{% endblock %}
 
 {% block content %}
 
@@ -21,7 +21,7 @@
       {% csrf_token %}
       <div class="field field-symbol">
         <label for="company1">Symbol</label>
-        <input type="text" id="company1" name="company1" list="homeSymbols" value="{{ symbol|default:'AAPL' }}" placeholder="e.g. AAPL" autocomplete="off">
+        <input type="text" id="company1" name="company1" list="homeSymbols" value="{{ symbol|default:'' }}" placeholder="e.g. AAPL" autocomplete="off">
         <datalist id="homeSymbols">
           {% for s in suggestions|default:"" %}<option value="{{ s.label|default:s.Symbol }}">{{ s.Name|default:"" }}</option>{% endfor %}
           {% for s in watchlist|default:"" %}<option value="{{ s }}"></option>{% endfor %}
@@ -50,7 +50,41 @@
     {% endif %}
   </section>
 
-  {% if not has_data %}
+  {% if not symbol %}
+    <section class="empty-state panel welcome-panel">
+      <img class="empty-logo" src="{% static 'logo.svg' %}" alt="" width="64" height="64">
+      <h2>Search a symbol to get started</h2>
+      <p>Type a ticker above, or pick one from the watchlist, to see price history, charts, forecasts and daily headlines.</p>
+      <div class="chip-row">
+        <span class="chip-label">Popular</span>
+        {% for s in watchlist %}
+          <a class="chip" href="{% url 'home' %}?symbol={{ s }}">{{ s }}</a>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if market_news %}
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Latest market news</h2>
+            <p class="panel-sub">Stock-market headlines, refreshed every day</p>
+          </div>
+          <span class="badge badge-neutral">DAILY</span>
+        </div>
+        <div class="news-list news-list-wide">
+          {% for n in market_news|slice:":6" %}
+            <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">
+              <span class="news-title">{{ n.title|default:"Untitled headline" }}</span>
+              <span class="news-meta">{{ n.publisher|default:"Source" }}{% if n.published %} · {{ n.published }}{% endif %}</span>
+            </a>
+          {% empty %}
+            <div class="muted news-empty">No market headlines available right now.</div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  {% elif not has_data %}
     <!-- ── Friendly empty state ─────────────────────────────────── -->
     <section class="empty-state panel">
       <div class="empty-icon" aria-hidden="true">◈</div>
@@ -167,7 +201,7 @@
             <h2 class="panel-title">Latest news</h2>
             <p class="panel-sub">Headlines for {{ symbol }}</p>
           </div>
-          <span class="badge badge-neutral">RSS</span>
+          <span class="badge badge-neutral">DAILY</span>
         </div>
         <div class="news-list">
           {% for n in news|slice:":6" %}
@@ -176,7 +210,7 @@
               <span class="news-meta">{{ n.publisher|default:"Source" }}{% if n.published %} · {{ n.published }}{% endif %}</span>
             </a>
           {% empty %}
-            <div class="muted news-empty">No recent headlines available.</div>
+            <div class="muted news-empty">No recent headlines available — news refreshes automatically.</div>
           {% endfor %}
         </div>
       </div>

@@ -114,11 +114,14 @@
     <!-- ── News ─────────────────────────────────────────────────── -->
     <section class="panel">
       <div class="panel-head">
-        <div><h2 class="panel-title">Latest news</h2><p class="panel-sub">Headlines for {{ symbol }}</p></div>
-        {% with src=history.source|default:"cache" %}
-          <span class="badge {% if src == 'live' %}badge-live{% elif src == 'legacy' %}badge-stale{% else %}badge-neutral{% endif %}">{{ src|upper }}</span>
-          {% if history.stale %}<span class="badge badge-stale">STALE</span>{% endif %}
-        {% endwith %}
+        <div><h2 class="panel-title">Latest news</h2><p class="panel-sub">Headlines for {{ symbol }} · refreshed daily</p></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="badge badge-neutral">DAILY</span>
+          {% with src=history.source|default:"cache" %}
+            <span class="badge {% if src == 'live' %}badge-live{% elif src == 'legacy' %}badge-stale{% else %}badge-neutral{% endif %}">{{ src|upper }}</span>
+            {% if history.stale %}<span class="badge badge-stale">STALE</span>{% endif %}
+          {% endwith %}
+        </div>
       </div>
       <div class="news-list news-list-wide">
         {% for n in news|slice:":8" %}
@@ -127,7 +130,7 @@
             <span class="news-meta">{{ n.publisher|default:"Source" }}{% if n.published %} · {{ n.published }}{% endif %}</span>
           </a>
         {% empty %}
-          <div class="muted news-empty">No recent headlines available.</div>
+          <div class="muted news-empty">No recent headlines available — news refreshes automatically.</div>
         {% endfor %}
       </div>
     </section>

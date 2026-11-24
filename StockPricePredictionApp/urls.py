@@ -9,7 +9,6 @@ urlpatterns = [
     path("predict/", views.predict_view, name="predict"),
     path("stocks/", views.all_stocks, name="all_stocks"),
     path("details/<str:id>/", views.details, name="details"),
-    path("health/", views.health, name="health"),
     path("api-docs/", views.api_docs, name="api_docs"),
     path("download/<str:id>/", views.download, name="download"),
 

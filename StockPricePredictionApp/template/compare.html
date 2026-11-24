@@ -3,7 +3,7 @@
 
 {% block title %}Compare{% endblock %}
 {% block title_crumb %}COMPARE{% endblock %}
-{% block heading %}{{ symbol1|default:"AAPL" }} vs {{ symbol2|default:"MSFT" }}{% endblock %}
+{% block heading %}{% if symbol1 and symbol2 %}{{ symbol1 }} vs {{ symbol2 }}{% else %}Compare{% endif %}{% endblock %}
 
 {% block content %}
 
@@ -20,11 +20,11 @@
       {% csrf_token %}
       <div class="field field-symbol">
         <label for="company1">Symbol A</label>
-        <input type="text" id="company1" name="company1" value="{{ symbol1|default:'AAPL' }}" placeholder="e.g. AAPL" autocomplete="off">
+        <input type="text" id="company1" name="company1" value="{{ symbol1|default:'' }}" placeholder="e.g. AAPL" autocomplete="off">
       </div>
       <div class="field field-symbol">
         <label for="company2">Symbol B</label>
-        <input type="text" id="company2" name="company2" value="{{ symbol2|default:'MSFT' }}" placeholder="e.g. MSFT" autocomplete="off">
+        <input type="text" id="company2" name="company2" value="{{ symbol2|default:'' }}" placeholder="e.g. MSFT" autocomplete="off">
       </div>
       <div class="field">
         <label for="start_date">From</label>
@@ -40,7 +40,20 @@
     </form>
   </section>
 
-  {% if not has_data %}
+  {% if not has_selection %}
+    <section class="empty-state panel">
+      <div class="empty-icon" aria-hidden="true">⇄</div>
+      <h2>Choose two symbols to compare</h2>
+      <p>Enter two tickers above to compare price history, performance and the latest headlines for each stock.</p>
+      <div class="chip-row">
+        <span class="chip-label">Try</span>
+        <a class="chip" href="?a=AAPL&b=MSFT">AAPL vs MSFT</a>
+        <a class="chip" href="?a=NVDA&b=AMD">NVDA vs AMD</a>
+        <a class="chip" href="?a=TSLA&b=BYDDY">TSLA vs BYDDY</a>
+        <a class="chip" href="?a=BTC-USD&b=ETH-USD">BTC vs ETH</a>
+      </div>
+    </section>
+  {% elif not has_data %}
     <section class="empty-state panel">
       <div class="empty-icon" aria-hidden="true">⇄</div>
       <h2>Not enough overlapping data</h2>
@@ -152,7 +165,7 @@
     <!-- ── News columns ─────────────────────────────────────────── -->
     <section class="grid grid-2">
       <div class="panel">
-        <div class="panel-head"><div><h2 class="panel-title">{{ symbol1 }} news</h2><p class="panel-sub">Recent headlines</p></div></div>
+        <div class="panel-head"><div><h2 class="panel-title">{{ symbol1 }} news</h2><p class="panel-sub">Latest headlines · refreshed daily</p></div><span class="badge badge-neutral">DAILY</span></div>
         <div class="news-list">
           {% for n in news1|slice:":5" %}
             <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">
@@ -163,7 +176,7 @@
         </div>
       </div>
       <div class="panel">
-        <div class="panel-head"><div><h2 class="panel-title">{{ symbol2 }} news</h2><p class="panel-sub">Recent headlines</p></div></div>
+        <div class="panel-head"><div><h2 class="panel-title">{{ symbol2 }} news</h2><p class="panel-sub">Latest headlines · refreshed daily</p></div><span class="badge badge-neutral">DAILY</span></div>
         <div class="news-list">
           {% for n in news2|slice:":5" %}
             <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">

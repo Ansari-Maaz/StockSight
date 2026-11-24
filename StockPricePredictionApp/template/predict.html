@@ -3,7 +3,7 @@
 
 {% block title %}AI Forecast{% endblock %}
 {% block title_crumb %}AI FORECAST{% endblock %}
-{% block heading %}AI Forecast{% endblock %}
+{% block heading %}AI Price Forecast{% endblock %}
 
 {% block content %}
   {% with maxd=max_days|default:90 %}
@@ -21,7 +21,7 @@
       {% csrf_token %}
       <div class="field field-symbol">
         <label for="company1">Symbol</label>
-        <input type="text" id="company1" name="company1" value="{{ symbol|default:'AAPL' }}" placeholder="e.g. AAPL" autocomplete="off">
+        <input type="text" id="company1" name="company1" value="{{ symbol|default:'' }}" placeholder="e.g. AAPL" autocomplete="off">
       </div>
       <div class="field field-range">
         <label for="daysRange">Horizon <span class="accent-text">{{ days|default:7 }} days</span></label>
@@ -134,8 +134,16 @@
     <!-- ── No result: explainer ─────────────────────────────────── -->
     <section class="empty-state panel">
       <div class="empty-icon" aria-hidden="true">✦</div>
-      <h2>Turn history into a projection</h2>
-      <p>Submit a symbol above to train a model on locally cached prices and preview the next trading days.</p>
+      <h2>What is AI Forecast?</h2>
+      <p>
+        StockSight trains a model on the selected stock's historical daily prices and projects the next
+        <strong>1–90 trading days</strong>. The BUY / SELL / HOLD signal compares the projected path with the
+        model's validated direction accuracy. It is a statistical estimate — not investment advice or a guarantee.
+      </p>
+      <p class="muted">
+        Enter a symbol above and press <strong>Run forecast</strong>. Training happens on this machine from the
+        latest cached prices; subsequent runs reuse the model until new market data arrives.
+      </p>
       <div class="backend-grid">
         <div class="backend-card">
           <span class="backend-num">01</span>

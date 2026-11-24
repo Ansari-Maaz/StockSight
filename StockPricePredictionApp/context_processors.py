@@ -27,6 +27,6 @@ def market_context(request):
         _CACHE["status"] = cached
     return {
         "market": cached[1],
-        "app_name": getattr(settings, "APP_NAME", "MarketMind"),
+        "app_name": getattr(settings, "APP_NAME", "StockSight"),
         "rendered_at": datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC"),
     }
