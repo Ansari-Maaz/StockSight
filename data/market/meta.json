@@ -1,0 +1,83 @@
+{
+  "AAPL": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:51+00:00"
+  },
+  "MSFT": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:52+00:00"
+  },
+  "NVDA": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:52+00:00"
+  },
+  "TSLA": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:53+00:00"
+  },
+  "GOOGL": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:53+00:00"
+  },
+  "AMZN": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:54+00:00"
+  },
+  "META": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:54+00:00"
+  },
+  "BTC-USD": {
+    "rows": 3651,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T20:49:55+00:00"
+  },
+  "AACG": {
+    "last_attempt": "2026-11-23T21:18:47+00:00"
+  },
+  "AACIW": {
+    "rows": 2,
+    "last_date": "2026-11-24",
+    "first_date": "2026-11-17",
+    "last_success": "2026-11-24T17:48:09+00:00"
+  },
+  "AAL": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T21:18:49+00:00"
+  },
+  "AAME": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T21:18:50+00:00"
+  },
+  "A": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T21:18:49+00:00"
+  },
+  "AA": {
+    "rows": 2512,
+    "last_date": "2026-11-23",
+    "first_date": "2016-11-25",
+    "last_success": "2026-11-23T21:18:49+00:00"
+  }
+}
