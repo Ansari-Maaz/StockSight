@@ -1,7 +1,7 @@
 """Bring every cached symbol up to date. Schedule this with cron/Celery.
 
 Example (cron, weekdays 18:30):
-    30 18 * * 1-5 cd /path/to/MarketMind && .venv/bin/python manage.py refresh_data
+    30 18 * * 1-5 cd /path/to/StockSight && .venv/bin/python manage.py refresh_data
 """
 
 from __future__ import annotations
@@ -10,10 +10,11 @@ from django.core.management.base import BaseCommand
 
 from StockPricePredictionApp.services import data as data_service
 from StockPricePredictionApp.services import market as market_service
+from StockPricePredictionApp.services import news as news_service
 
 
 class Command(BaseCommand):
-    help = "Incrementally refresh all cached market data from the provider."
+    help = "Incrementally refresh all cached market data and stock news."
 
     def add_arguments(self, parser):
         parser.add_argument("symbols", nargs="*", help="Only refresh these symbols")
@@ -21,6 +22,8 @@ class Command(BaseCommand):
                             help="Ignore the per-symbol refresh rate limit")
         parser.add_argument("--universe", action="store_true",
                             help="Refresh all symbols in the bundled universe (slow)")
+        parser.add_argument("--no-news", action="store_true",
+                            help="Skip the stock-news refresh")
 
     def handle(self, *args, **options):
         if options["universe"]:
@@ -41,3 +44,18 @@ class Command(BaseCommand):
             label = self.style.SUCCESS if row.get("ok") else self.style.WARNING
             self.stdout.write(label(f"{row['symbol']:<12} {row.get('last_date') or row.get('error', '')}"))
         self.stdout.write(self.style.SUCCESS(f"\nUpdated {ok}/{len(results)} symbols."))
+
+        if options["no_news"]:
+            return
+        if options["universe"]:
+            self.stdout.write(self.style.WARNING("Skipping news for --universe (too many symbols)."))
+            return
+
+        self.stdout.write("\nRefreshing stock news …")
+        news_results = news_service.refresh_news(symbols, force=options["force"])
+        news_ok = sum(1 for row in news_results if row.get("ok"))
+        for row in news_results:
+            label = self.style.SUCCESS if row.get("ok") else self.style.WARNING
+            detail = f"{row.get('count', 0)} articles" if row.get("ok") else (row.get("error") or "no articles")
+            self.stdout.write(label(f"{row['symbol']:<12} {detail}"))
+        self.stdout.write(self.style.SUCCESS(f"News updated for {news_ok}/{len(news_results)} symbols."))

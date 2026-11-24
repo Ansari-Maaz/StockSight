@@ -24,6 +24,7 @@ staticfiles/
 # ── Market data cache ───────────────────────────────────────────────
 data/market/.*.lock
 data/market/*.lock
+data/news/
 
 # ── Generated model artifacts ───────────────────────────────────────
 models/
