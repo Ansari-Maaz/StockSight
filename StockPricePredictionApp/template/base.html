@@ -8,6 +8,8 @@
   <meta name="description" content="StockSight — modern market intelligence, screening and AI forecasting.">
   <title>{% block title %}Overview{% endblock %} · {{ app_name|default:"StockSight" }}</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
   <script>
     /* Apply saved preferences before first paint (no theme/sidebar flash). */
     (function () {
@@ -111,8 +113,12 @@
             <span>Data through</span>
             <strong>{{ market.newest_date|default:"—" }}</strong>
           </div>
-          <div class="status-stamp">Rendered {{ rendered_at|default:"just now" }}</div>
+            <div class="status-stamp">Rendered {{ rendered_at|default:"just now" }}</div>
         </div>
+        <button type="button" class="btn btn-ghost install-btn" id="installApp" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+          Install app
+        </button>
         <div class="sidebar-legal">© 2026 StockSight · <a href="{% url 'landing' %}">About</a></div>
       </div>
     </aside>
@@ -139,6 +145,11 @@
             <button class="search-submit" type="submit" aria-label="Search">↵</button>
           </form>
 
+          <button type="button" class="cmd-trigger" id="cmdTrigger" aria-label="Open command palette" title="Command palette (Ctrl+K)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+            <span>⌘K</span>
+          </button>
+
           <button type="button" class="theme-toggle" id="themeToggle"
                   aria-label="Switch theme" title="Switch theme">
             <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.9 4.9l1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.9 19.1 1.4-1.4"/><path d="m17.7 6.3 1.4-1.4"/></svg>
@@ -162,6 +173,23 @@
         <span>StockSight · locally cached market intelligence</span>
         <span>Not investment advice · data may be delayed</span>
       </footer>
+    </div>
+  </div>
+
+  <!-- ── Command palette ───────────────────────────────────────────── -->
+  <div class="cmd-overlay" id="cmdOverlay" hidden>
+    <div class="cmd-backdrop" data-cmd-close></div>
+    <div class="cmd-panel" role="dialog" aria-modal="true" aria-label="Command palette">
+      <div class="cmd-input-wrap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+        <input type="text" id="cmdInput" placeholder="Search symbols or commands…" autocomplete="off" spellcheck="false" aria-label="Command search">
+        <kbd>ESC</kbd>
+      </div>
+      <div class="cmd-results" id="cmdResults"></div>
+      <div class="cmd-foot">
+        <span>↑↓ navigate · Enter open · Esc close</span>
+        <span>StockSight</span>
+      </div>
     </div>
   </div>
 

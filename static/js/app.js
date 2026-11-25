@@ -685,6 +685,149 @@
     });
   }
 
+  /* ── PWA: service worker + install prompt ────────────────────────── */
+  function initPwa() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .catch(function () { /* Offline support is a progressive enhancement. */ });
+      });
+    }
+
+    var button = document.getElementById('installApp');
+    var deferred = null;
+    window.addEventListener('beforeinstallprompt', function (event) {
+      event.preventDefault();
+      deferred = event;
+      if (button) { button.hidden = false; }
+    });
+    if (button) {
+      button.addEventListener('click', function () {
+        if (!deferred) { return; }
+        deferred.prompt();
+        deferred.userChoice.then(function () {
+          deferred = null;
+          button.hidden = true;
+        });
+      });
+    }
+    window.addEventListener('appinstalled', function () {
+      if (button) { button.hidden = true; }
+    });
+  }
+
+  /* ── Command palette ────────────────────────────────────────────── */
+  function initCommandPalette() {
+    var overlay = document.getElementById('cmdOverlay');
+    var input = document.getElementById('cmdInput');
+    var results = document.getElementById('cmdResults');
+    var trigger = document.getElementById('cmdTrigger');
+    if (!overlay || !input || !results) { return; }
+
+    var commands = [
+      { label: 'Overview', hint: 'Dashboard', href: '/dashboard/' },
+      { label: 'Compare', hint: 'Two symbols', href: '/compare/' },
+      { label: 'AI Forecast', hint: 'Price projection', href: '/predict/' },
+      { label: 'Market Screener', hint: 'Browse symbols', href: '/stocks/' },
+      { label: 'Portfolio', hint: 'Local P&L', href: '/portfolio/' },
+      { label: 'Alerts', hint: 'Price & forecast', href: '/alerts/' },
+      { label: 'API Docs', hint: 'JSON endpoints', href: '/api-docs/' },
+      { label: 'Landing page', hint: 'About StockSight', href: '/' }
+    ];
+    var datalist = document.getElementById('globalSymbols');
+    var symbols = [];
+    if (datalist) {
+      symbols = Array.prototype.map.call(datalist.querySelectorAll('option'), function (option) {
+        return option.value;
+      }).filter(function (value, index, all) { return value && all.indexOf(value) === index; });
+    }
+
+    var items = [];
+    var active = 0;
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function build(query) {
+      var q = query.trim().toLowerCase();
+      var list = [];
+      commands.forEach(function (command) {
+        if (!q || command.label.toLowerCase().indexOf(q) !== -1 ||
+            command.hint.toLowerCase().indexOf(q) !== -1) { list.push(command); }
+      });
+      symbols.forEach(function (symbol) {
+        if (!q || symbol.toLowerCase().indexOf(q) !== -1) {
+          list.push({ label: symbol, hint: 'Open symbol', href: '/dashboard/?symbol=' + encodeURIComponent(symbol) });
+        }
+      });
+      return list.slice(0, 12);
+    }
+
+    function setActive(index) {
+      if (!items.length) { return; }
+      active = (index + items.length) % items.length;
+      Array.prototype.forEach.call(results.querySelectorAll('.cmd-item'), function (item, i) {
+        item.classList.toggle('active', i === active);
+        if (i === active) { item.scrollIntoView({ block: 'nearest' }); }
+      });
+    }
+
+    function render(query) {
+      items = build(query);
+      active = 0;
+      if (!items.length) {
+        results.innerHTML = '<div class="cmd-empty">No matching commands or symbols.</div>';
+        return;
+      }
+      results.innerHTML = items.map(function (item, index) {
+        return '<button type="button" class="cmd-item' + (index === 0 ? ' active' : '') +
+          '" data-index="' + index + '" data-href="' + escapeHtml(item.href) + '">' +
+          '<span class="cmd-item-label">' + escapeHtml(item.label) + '</span>' +
+          '<span class="cmd-item-hint">' + escapeHtml(item.hint) + '</span>' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>' +
+          '</button>';
+      }).join('');
+    }
+
+    function openPalette() {
+      overlay.hidden = false;
+      input.value = '';
+      render('');
+      window.setTimeout(function () { input.focus(); }, 0);
+    }
+    function closePalette() { overlay.hidden = true; }
+    function go(index) {
+      if (items[index]) { window.location.href = items[index].href; }
+    }
+
+    if (trigger) { trigger.addEventListener('click', openPalette); }
+    overlay.querySelector('[data-cmd-close]').addEventListener('click', closePalette);
+
+    input.addEventListener('input', function () { render(input.value); });
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown') { event.preventDefault(); setActive(active + 1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(active - 1); }
+      else if (event.key === 'Enter') { event.preventDefault(); go(active); }
+      else if (event.key === 'Escape') { event.preventDefault(); closePalette(); }
+    });
+
+    results.addEventListener('click', function (event) {
+      var item = event.target && event.target.closest ? event.target.closest('.cmd-item') : null;
+      if (item) { go(Number(item.getAttribute('data-index'))); }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if ((event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K')) {
+        event.preventDefault();
+        openPalette();
+      } else if (event.key === 'Escape' && !overlay.hidden) {
+        closePalette();
+      }
+    });
+  }
+
   /* ── Boot ─────────────────────────────────────────────────────────── */
 
   function boot() {
@@ -699,6 +842,8 @@
     initRefreshButtons();
     initTheme();
     initSidebar();
+    initPwa();
+    initCommandPalette();
   }
 
   if (document.readyState === 'loading') {

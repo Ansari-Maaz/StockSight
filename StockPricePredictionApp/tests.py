@@ -283,8 +283,35 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         self.assertContains(response, 'id="landingThemeToggle"')
         self.assertContains(response, 'id="cmpChart"')
         self.assertContains(response, 'data-demo-symbol="AAPL"')
+        self.assertContains(response, 'rel="manifest"')
+        self.assertContains(response, "application/ld+json")
         self.assertEqual([q["symbol"] for q in response.context["ticker"]], ["AAPL", "MSFT"])
         self.assertGreater(len(response.context["hero_series"]["close"]), 1)
+
+    def test_distribution_endpoints(self):
+        robots = self.client.get("/robots.txt")
+        self.assertEqual(robots.status_code, 200)
+        self.assertIn(b"Sitemap:", robots.content)
+        self.assertIn(b"Disallow: /api/", robots.content)
+
+        sitemap = self.client.get("/sitemap.xml")
+        self.assertEqual(sitemap.status_code, 200)
+        self.assertIn(b"<urlset", sitemap.content)
+        self.assertIn(b"/dashboard/", sitemap.content)
+
+        sw = self.client.get("/sw.js")
+        self.assertEqual(sw.status_code, 200)
+        self.assertEqual(sw["Service-Worker-Allowed"], "/")
+        self.assertIn(b"stocksight-shell", sw.content)
+
+    def test_branded_error_templates(self):
+        from django.template.loader import get_template
+        self.assertIn("404", get_template("404.html").template.source)
+        self.assertIn("500", get_template("500.html").template.source)
+        with self.settings(DEBUG=False, ALLOWED_HOSTS=["testserver"]):
+            response = self.client.get("/does-not-exist/")
+            self.assertEqual(response.status_code, 404)
+            self.assertIn(b"Lost in the market?", response.content)
 
     def test_health_page_removed(self):
         self.assertEqual(self.client.get("/health/").status_code, 404)

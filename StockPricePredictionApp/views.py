@@ -6,6 +6,8 @@ import csv
 import json
 import logging
 from datetime import date, timedelta
+from pathlib import Path
+from xml.sax.saxutils import escape
 
 import pandas as pd
 from django.conf import settings
@@ -106,6 +108,20 @@ def landing(request):
     hero_history = data_service.get_history(hero_symbol, refresh="never")
     hero_df = hero_history.df.tail(60) if not hero_history.df.empty else hero_history.df
     hero_series = _series(hero_df) if not hero_df.empty else {"labels": [], "close": []}
+    base_uri = request.build_absolute_uri("/").rstrip("/")
+    canonical_url = base_uri + "/"
+    og_image = request.build_absolute_uri(settings.STATIC_URL + "stocksight-banner.png")
+    seo_json = json.dumps({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": getattr(settings, "APP_NAME", "StockSight"),
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "description": "Daily stock news, honest AI forecasts, side-by-side comparison and a local-first market screener. No signup required.",
+        "url": canonical_url,
+        "image": og_image,
+        "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+    })
 
     return render(request, "landing.html", {
         "app_name": getattr(settings, "APP_NAME", "StockSight"),
@@ -115,6 +131,9 @@ def landing(request):
         "hero_quote": quotes[0] if quotes else {},
         "hero_series": hero_series,
         "demo_symbols": WATCHLIST[:6],
+        "canonical_url": canonical_url,
+        "og_image": og_image,
+        "seo_json": seo_json,
         "year": date.today().year,
     })
 
@@ -449,3 +468,53 @@ def api_refresh(request):
 
 def api_docs(request):
     return render(request, "api.html", {"nav_active": "api"})
+
+
+# --------------------------------------------------------------------------- #
+# Distribution: PWA, SEO files
+# --------------------------------------------------------------------------- #
+@require_GET
+def service_worker(request):
+    """Serve the SW from the origin root so it can control the whole site."""
+    path = Path(settings.BASE_DIR) / "static" / "sw.js"
+    response = HttpResponse(path.read_text(), content_type="application/javascript")
+    response["Service-Worker-Allowed"] = "/"
+    response["Cache-Control"] = "no-cache"
+    return response
+
+
+@require_GET
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /api/",
+        "Disallow: /download/",
+        "Disallow: /admin/",
+        "Disallow: /health/",
+        "",
+        "Sitemap: " + request.build_absolute_uri("/sitemap.xml"),
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
+
+
+@require_GET
+def sitemap_xml(request):
+    base = request.build_absolute_uri("/").rstrip("/")
+    paths = [
+        "/", "/dashboard/", "/compare/", "/predict/", "/stocks/",
+        "/portfolio/", "/alerts/", "/api-docs/",
+    ]
+    for row in data_service.status()["symbols"]:
+        paths.append("/details/" + row["symbol"] + "/")
+
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for path in paths:
+        lines.append(
+            "<url><loc>" + escape(base + path) + "</loc>" +
+            "<changefreq>weekly</changefreq></url>"
+        )
+    lines.append("</urlset>")
+    return HttpResponse("\n".join(lines), content_type="application/xml")
+

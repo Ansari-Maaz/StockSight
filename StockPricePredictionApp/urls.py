@@ -23,4 +23,9 @@ urlpatterns = [
     path("api/predict/", views.api_predict, name="api_predict"),
     path("api/search/", views.api_search, name="api_search"),
     path("api/refresh/", views.api_refresh, name="api_refresh"),
+
+    # Distribution
+    path("robots.txt", views.robots_txt, name="robots_txt"),
+    path("sitemap.xml", views.sitemap_xml, name="sitemap_xml"),
+    path("sw.js", views.service_worker, name="service_worker"),
 ]

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offline · StockSight</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh; margin: 0; display: grid; place-items: center;
+      background: radial-gradient(900px 500px at 50% -10%, #e0e7ff, transparent 65%), #f5f7fc;
+      color: #0f172a; font-family: "Plus Jakarta Sans", system-ui, sans-serif; padding: 24px;
+    }
+    .card {
+      max-width: 480px; padding: 40px 32px; text-align: center;
+      background: rgba(255,255,255,.94); border: 1px solid #e4eaf3; border-radius: 24px;
+      box-shadow: 0 30px 70px -40px rgba(15,23,42,.4);
+    }
+    img { width: 62px; height: 62px; margin: 0 auto 18px; border-radius: 18px; }
+    h1 { margin: 0 0 10px; font-size: 30px; letter-spacing: -.04em; }
+    p { margin: 0 0 24px; color: #64748b; line-height: 1.7; font-size: 14px; }
+    a { display: inline-block; margin: 0 5px; padding: 11px 18px; border-radius: 11px; text-decoration: none; font-weight: 700; font-size: 13px; }
+    .primary { color: #fff; background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+    .ghost { color: #334155; background: #f1f5fb; border: 1px solid #e4eaf3; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/static/logo.svg" alt="StockSight">
+    <h1>You're offline</h1>
+    <p>StockSight keeps its interface available offline. Reconnect to load fresh quotes, news and forecasts — nothing is invented while the network is down.</p>
+    <a class="primary" href="/">Try again</a>
+    <a class="ghost" href="/dashboard/">Open dashboard</a>
+  </div>
+</body>
+</html>

@@ -28,6 +28,7 @@
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/health/</code></td><td>Data store status: cached symbol count, freshness, model info.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/history/?symbol=AAPL</code></td><td>OHLCV history with source, staleness and series arrays.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/quote/?symbol=AAPL</code></td><td>Latest quote, day change and freshness metadata.</td></tr>
+          <tr><td><span class="badge method-get">GET</span></td><td><code>/api/quotes/?symbols=AAPL,MSFT</code></td><td>Batch quotes for the local portfolio, watchlist and alerts.</td></tr>
           <tr><td><span class="badge method-post">POST</span></td><td><code>/api/predict/</code></td><td>Train/load a model and return a forecast for the requested horizon.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/search/?q=app</code></td><td>Search the symbol universe; returns matching symbols and names.</td></tr>
           <tr><td><span class="badge method-post">POST</span></td><td><code>/api/refresh/</code></td><td>Re-fetch cached data for one or more symbols.</td></tr>

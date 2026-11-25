@@ -170,6 +170,13 @@
     });
   }
 
+  /* ── Offline shell ───────────────────────────────────────────────── */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
+    });
+  }
+
   /* ── Landing theme (shared with the dashboard via mm-theme) ───── */
   var themeToggle = document.getElementById("landingThemeToggle");
   var themeColor = document.getElementById("themeColor");

@@ -8,10 +8,19 @@
   <meta name="description" content="StockSight — daily stock news, honest AI forecasts, side-by-side comparison and a market screener. No signup required.">
   <title>StockSight — See the market clearly</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <link rel="canonical" href="{{ canonical_url }}">
   <meta property="og:title" content="StockSight — See the market clearly">
   <meta property="og:description" content="Daily stock news, honest AI forecasts and transparent metrics. No signup required.">
-  <meta property="og:image" content="{% static 'stocksight-banner.png' %}">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:url" content="{{ canonical_url }}">
   <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="StockSight — See the market clearly">
+  <meta name="twitter:description" content="Daily stock news, honest AI forecasts and transparent metrics. No signup required.">
+  <meta name="twitter:image" content="{{ og_image }}">
+  <script type="application/ld+json">{{ seo_json|safe }}</script>
   <link rel="stylesheet" href="{% static 'css/landing.css' %}">
   <script>
     document.documentElement.classList.add("js");
