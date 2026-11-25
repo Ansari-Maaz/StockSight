@@ -4,7 +4,8 @@ from . import views
 
 urlpatterns = [
     # Pages
-    path("", views.home, name="home"),
+    path("", views.landing, name="landing"),
+    path("dashboard/", views.home, name="home"),
     path("compare/", views.compare, name="compare"),
     path("predict/", views.predict_view, name="predict"),
     path("stocks/", views.all_stocks, name="all_stocks"),

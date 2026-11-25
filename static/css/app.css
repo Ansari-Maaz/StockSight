@@ -266,6 +266,8 @@ body {
 .status-row strong { color: var(--text); font-weight: 750; font-variant-numeric: tabular-nums; }
 .status-stamp { margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 9.5px; color: var(--dim); }
 .sidebar-legal { padding: 12px 6px 0; font-size: 9.5px; color: var(--dim); text-align: center; }
+.sidebar-legal a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.sidebar-legal a:hover { color: var(--primary); }
 
 /* ── Collapsible sidebar ──────────────────────────────────────────── */
 .sidebar, .app-shell { transition: width .22s ease, grid-template-columns .22s ease; }

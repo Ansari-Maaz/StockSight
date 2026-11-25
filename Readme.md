@@ -16,7 +16,7 @@ A production-ready stock analytics and forecasting dashboard built with **Django
 | **Forecasting** | LSTM → scikit-learn Gradient Boosting → NumPy regression, automatic fallback chain. Models are trained **from your data**, cached by fingerprint, and reused. |
 | **Honest metrics** | RMSE, MAE, MAPE, directional accuracy and a naive-baseline comparison on a chronological holdout. |
 | **No secret keys required** | All core features work without API keys; Finnhub/NewsAPI are optional upgrades. |
-| **Modern UI** | Responsive dashboard with **light/dark theme toggle** (persisted in `localStorage`), a **collapsible sidebar**, locally bundled Plus Jakarta Sans + JetBrains Mono fonts, indigo/violet palette, semantic colour coding, and Chart.js charts that re-theme with the active mode (vendored locally). No CDN dependency at runtime. |
+| **Modern UI** | Animated public landing page at `/`, plus a responsive dashboard at `/dashboard/` with **light/dark theme toggle** (persisted in `localStorage`), a **collapsible sidebar**, locally bundled Plus Jakarta Sans + JetBrains Mono fonts, indigo/violet palette, semantic colour coding, and Chart.js charts that re-theme with the active mode (vendored locally). No CDN dependency at runtime. |
 | **JSON API** | `/api/history/`, `/api/quote/`, `/api/predict/`, `/api/search/`, `/api/health/`, `/api/refresh/`. |
 | **Production bits** | Env-driven settings, security headers, gunicorn, Dockerfile + compose, cron example, logging, tests. |
 
@@ -40,7 +40,7 @@ python manage.py train_model AAPL
 python manage.py runserver
 ```
 
-Open <http://127.0.0.1:8000/>. No API keys, no external services, no manual CSV placement.
+Open <http://127.0.0.1:8000/> for the landing page, or <http://127.0.0.1:8000/dashboard/> to go straight to the dashboard. No API keys, no external services, no manual CSV placement.
 
 **Already have data?** Import it offline:
 

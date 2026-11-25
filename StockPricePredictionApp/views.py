@@ -85,6 +85,32 @@ def _json_body(request) -> dict:
 # --------------------------------------------------------------------------- #
 # Pages
 # --------------------------------------------------------------------------- #
+def landing(request):
+    """Public marketing page - no account, no network calls."""
+    status = data_service.status()
+    quotes = []
+    for symbol in WATCHLIST:
+        quote = data_service.get_quote(symbol, refresh="never")
+        if quote.get("close") is not None and not quote.get("error"):
+            quotes.append(quote)
+
+    newest = max((s["last_date"] for s in status["symbols"] if s["last_date"]), default=None)
+    if newest:
+        try:
+            newest = date.fromisoformat(newest).strftime("%d %b %Y")
+        except ValueError:
+            pass
+
+    return render(request, "landing.html", {
+        "app_name": getattr(settings, "APP_NAME", "StockSight"),
+        "symbol_count": status["symbol_count"],
+        "data_through": newest or "—",
+        "ticker": quotes,
+        "hero_quote": quotes[0] if quotes else {},
+        "year": date.today().year,
+    })
+
+
 def home(request):
     raw_symbol = request.POST.get("company1") or request.GET.get("symbol") or ""
     symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""

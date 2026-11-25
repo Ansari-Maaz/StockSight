@@ -243,17 +243,26 @@ class ViewSmokeTests(TempDataMixin, TestCase):
                       "stale": False, "live": True}],
             "page_obj": page_obj, "total": 1, "search": "",
         }
-        for url in ["/", "/compare/", "/predict/", "/stocks/", "/details/TEST/", "/api-docs/"]:
+        for url in ["/", "/dashboard/", "/compare/", "/predict/", "/stocks/", "/details/TEST/", "/api-docs/"]:
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200, url)
+
+    def test_landing_page(self):
+        response = self.client.get("/")
+        self.assertTemplateUsed(response, "landing.html")
+        self.assertContains(response, "See the market")
+        self.assertContains(response, "How AI Forecast works")
+        self.assertContains(response, "No signup")
+        self.assertContains(response, 'href="/dashboard/"')
+        self.assertEqual([q["symbol"] for q in response.context["ticker"]], ["AAPL", "MSFT"])
 
     def test_health_page_removed(self):
         self.assertEqual(self.client.get("/health/").status_code, 404)
 
     @patch("StockPricePredictionApp.views.news_service.get_market_news", return_value=[])
     def test_first_visit_has_empty_symbol_inputs(self, _mock_market_news):
-        home = self.client.get("/")
+        home = self.client.get("/dashboard/")
         self.assertEqual(home.context["symbol"], "")
         self.assertContains(home, "Search a symbol to get started")
         self.assertContains(home, 'name="company1" list="homeSymbols" value=""')
