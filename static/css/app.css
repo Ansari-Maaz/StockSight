@@ -204,6 +204,7 @@ body {
 }
 .sidebar-toggle svg { width: 15px; height: 15px; }
 .sidebar-toggle .icon-expand { display: none; }
+.sidebar-toggle .icon-menu { display: none; }
 .sidebar-toggle:hover { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-line); }
 .brand-mark {
   display: block;
@@ -892,6 +893,17 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
   .local-banner { flex-direction: column; align-items: flex-start; gap: 8px; }
   .cmd-trigger span { display: none; }
   .cmd-panel { width: calc(100% - 20px); }
+  .sidebar-toggle .icon-collapse, .sidebar-toggle .icon-expand { display: none; }
+  .sidebar-toggle .icon-menu { display: block; }
+  .sidebar-toggle svg { width: 18px; height: 18px; }
+  .sidebar-nav { display: none; }
+  .mobile-nav-open .sidebar-nav {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px;
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    padding: 10px 14px 14px; background: var(--surface);
+    border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .mobile-nav-open .nav-link { width: 100%; padding: 10px 11px; }
   .chart-wrap { height: 270px; }
   .chart-wrap-lg { height: 300px; }
   .chart-wrap-sm { height: 180px; }
