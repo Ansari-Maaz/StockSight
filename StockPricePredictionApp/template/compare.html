@@ -165,7 +165,17 @@
     <!-- ── News columns ─────────────────────────────────────────── -->
     <section class="grid grid-2">
       <div class="panel">
-        <div class="panel-head"><div><h2 class="panel-title">{{ symbol1 }} news</h2><p class="panel-sub">Latest headlines · refreshed daily</p></div><span class="badge badge-neutral">DAILY</span></div>
+        <div class="panel-head">
+          <div><h2 class="panel-title">{{ symbol1 }} news</h2><p class="panel-sub">Latest headlines · refreshed daily</p></div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge badge-neutral">DAILY</span>
+            {% if pulse1 %}
+              <span class="badge badge-{{ pulse1.css }}" title="Keyword-based headline tone: {{ pulse1.positive }} positive / {{ pulse1.negative }} negative of {{ pulse1.total }} headlines">
+                {{ pulse1.label }} {{ pulse1.positive }}▲ {{ pulse1.negative }}▼
+              </span>
+            {% endif %}
+          </div>
+        </div>
         <div class="news-list">
           {% for n in news1|slice:":5" %}
             <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">
@@ -176,7 +186,17 @@
         </div>
       </div>
       <div class="panel">
-        <div class="panel-head"><div><h2 class="panel-title">{{ symbol2 }} news</h2><p class="panel-sub">Latest headlines · refreshed daily</p></div><span class="badge badge-neutral">DAILY</span></div>
+        <div class="panel-head">
+          <div><h2 class="panel-title">{{ symbol2 }} news</h2><p class="panel-sub">Latest headlines · refreshed daily</p></div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge badge-neutral">DAILY</span>
+            {% if pulse2 %}
+              <span class="badge badge-{{ pulse2.css }}" title="Keyword-based headline tone: {{ pulse2.positive }} positive / {{ pulse2.negative }} negative of {{ pulse2.total }} headlines">
+                {{ pulse2.label }} {{ pulse2.positive }}▲ {{ pulse2.negative }}▼
+              </span>
+            {% endif %}
+          </div>
+        </div>
         <div class="news-list">
           {% for n in news2|slice:":5" %}
             <a class="news-item" href="{{ n.link|default:'#' }}" target="_blank" rel="noopener noreferrer">

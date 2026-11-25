@@ -15,6 +15,7 @@ from django.test import Client, TestCase
 from StockPricePredictionApp.services import data as data_service
 from StockPricePredictionApp.services import news as news_service
 from StockPricePredictionApp.services import predictor
+from StockPricePredictionApp.services import sentiment
 
 
 def synthetic_frame(days: int = 320, symbol: str = "TEST") -> pd.DataFrame:
@@ -118,6 +119,26 @@ class PredictorTests(TempDataMixin, unittest.TestCase):
         self.assertTrue(first.fresh)
         self.assertFalse(second.fresh)
         np.testing.assert_allclose(first.predictions, second.predictions)
+
+
+class SentimentTests(unittest.TestCase):
+    def test_headline_tone(self):
+        rows = [
+            {"title": "Apple beats estimates and raises guidance"},
+            {"title": "Nvidia surges on strong growth"},
+            {"title": "Tesla misses targets amid weakening demand"},
+        ]
+        result = sentiment.score(rows)
+        self.assertEqual(result["label"], "Bullish")
+        self.assertEqual(result["positive"], 2)
+        self.assertEqual(result["negative"], 1)
+
+        bearish = sentiment.score([
+            {"title": "Company warns of losses and cuts outlook"},
+            {"title": "Shares plunge after weak results"},
+        ])
+        self.assertEqual(bearish["label"], "Bearish")
+        self.assertIsNone(sentiment.score([]))
 
 
 class NewsServiceTests(TempDataMixin, unittest.TestCase):
@@ -244,7 +265,8 @@ class ViewSmokeTests(TempDataMixin, TestCase):
 
         predict = self.client.get("/predict/")
         self.assertEqual(predict.context["symbol"], "")
-        self.assertContains(predict, "What is AI Forecast?")
+        self.assertContains(predict, "What is AI Forecast")
+        self.assertContains(predict, "Sanity-check a hunch")
 
     def test_api_endpoints(self):
         self.assertEqual(self.client.get("/api/health/").status_code, 200)
@@ -268,6 +290,8 @@ class ViewSmokeTests(TempDataMixin, TestCase):
             response = self.client.post("/predict/", {"company1": "TEST", "days": "3"})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["has_result"])
+        self.assertEqual(response.context["result"]["projected_change_pct"], 100.0)
+        self.assertEqual(response.context["result"]["projected_high"], 2.0)
 
     def test_csv_download(self):
         response = self.client.get("/download/0/?symbol=TEST")

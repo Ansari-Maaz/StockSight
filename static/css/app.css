@@ -649,6 +649,23 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
 .note-text + .note-text { margin-top: 10px; }
 .note-divider { height: 1px; background: var(--border); margin: 16px 0; }
 
+/* ── Forecast / why-use explainers ────────────────────────────────── */
+.guide-grid, .why-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.guide-item, .why-item {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.guide-label, .why-num {
+  font-family: var(--mono); font-size: 10px; font-weight: 800;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--primary);
+}
+.guide-value { font-size: 16px; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+.guide-item span:last-child, .why-item span:last-child { font-size: 11.5px; line-height: 1.55; color: var(--muted); }
+.guide-foot { margin-top: 14px; }
+.why-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 22px 0 4px; }
+.why-item strong { font-size: 13px; color: var(--text); }
+
 /* ── Company profile ──────────────────────────────────────────────── */
 .company-head-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
 .company-id { display: flex; align-items: center; gap: 15px; min-width: 0; }
@@ -722,6 +739,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
   .grid-charts { grid-template-columns: minmax(0, 1fr); }
   .news-list-wide { grid-template-columns: minmax(0, 1fr); }
   .backend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .guide-grid, .why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -761,6 +779,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
   .app-footer { padding: 14px 18px 20px; }
   .compare-grid { grid-template-columns: minmax(0, 1fr); }
   .backend-grid { grid-template-columns: minmax(0, 1fr); }
+  .guide-grid, .why-grid { grid-template-columns: minmax(0, 1fr); }
   .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

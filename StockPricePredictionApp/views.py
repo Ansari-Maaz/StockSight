@@ -18,6 +18,7 @@ from .services import data as data_service
 from .services import market as market_service
 from .services import news as news_service
 from .services import predictor
+from .services import sentiment as sentiment_service
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,7 @@ def home(request):
         "stats": _stats(df, quote) if has_data else {},
         "quote": quote,
         "news": news,
+        "news_pulse": sentiment_service.score(news),
         "market_news": news_service.get_market_news() if not symbol else [],
         "history": history.as_dict(),
         "has_data": has_data,
@@ -169,6 +171,8 @@ def compare(request):
     q1 = data_service.get_quote(symbol1, refresh="never") if not a.empty else {}
     q2 = data_service.get_quote(symbol2, refresh="never") if not b.empty else {}
     has_data = has_selection and not a.empty and not b.empty
+    news1 = news_service.get_news(symbol1) if not a.empty else []
+    news2 = news_service.get_news(symbol2) if not b.empty else []
     context = {
         "nav_active": "compare",
         "symbol1": symbol1, "symbol2": symbol2,
@@ -177,8 +181,9 @@ def compare(request):
         "series": series,
         "stats1": _stats(a, q1), "stats2": _stats(b, q2),
         "quote1": q1, "quote2": q2,
-        "news1": news_service.get_news(symbol1) if not a.empty else [],
-        "news2": news_service.get_news(symbol2) if not b.empty else [],
+        "news1": news1, "news2": news2,
+        "pulse1": sentiment_service.score(news1),
+        "pulse2": sentiment_service.score(news2),
         "history": [h1.as_dict(), h2.as_dict()] if has_selection else [],
         "has_data": has_data,
         "error": (h1.error if df1.empty else h2.error) if has_selection and (df1.empty or df2.empty) else None,
@@ -204,6 +209,16 @@ def predict_view(request):
         else:
             try:
                 result = predictor.predict(symbol, days=days).as_dict()
+                projections = result.get("predictions") or []
+                if projections:
+                    closes = result.get("history_close") or []
+                    base = closes[-1] if closes else projections[0]
+                    if base:
+                        result["projected_change_pct"] = round(
+                            (projections[-1] / base - 1) * 100, 2)
+                        result["projected_low"] = round(min(projections), 2)
+                        result["projected_high"] = round(max(projections), 2)
+                        result["projected_last"] = round(projections[-1], 2)
             except Exception as exc:
                 logger.exception("Prediction failed for %s", symbol)
                 error = str(exc)
@@ -251,6 +266,7 @@ def details(request, id):
     df = history.df
     quote = data_service.get_quote(symbol, refresh="never") if not df.empty else {}
     info = _company_info(symbol) if not df.empty else {}
+    news = news_service.get_news(symbol) if not df.empty else []
     return render(request, "details.html", {
         "nav_active": "stocks",
         "symbol": symbol,
@@ -259,7 +275,8 @@ def details(request, id):
         "series": _series(df.tail(500)) if not df.empty else {"labels": [], "close": [], "volume": []},
         "stats": _stats(df, quote) if not df.empty else {},
         "quote": quote,
-        "news": news_service.get_news(symbol) if not df.empty else [],
+        "news": news,
+        "news_pulse": sentiment_service.score(news),
         "history": history.as_dict(),
         "has_data": not df.empty,
         "error": history.error if df.empty else None,

@@ -201,7 +201,14 @@
             <h2 class="panel-title">Latest news</h2>
             <p class="panel-sub">Headlines for {{ symbol }}</p>
           </div>
-          <span class="badge badge-neutral">DAILY</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge badge-neutral">DAILY</span>
+            {% if news_pulse %}
+              <span class="badge badge-{{ news_pulse.css }}" title="Keyword-based headline tone: {{ news_pulse.positive }} positive / {{ news_pulse.negative }} negative of {{ news_pulse.total }} headlines">
+                {{ news_pulse.label }} {{ news_pulse.positive }}▲ {{ news_pulse.negative }}▼
+              </span>
+            {% endif %}
+          </div>
         </div>
         <div class="news-list">
           {% for n in news|slice:":6" %}

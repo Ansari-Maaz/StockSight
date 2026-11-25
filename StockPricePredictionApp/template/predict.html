@@ -90,6 +90,49 @@
       </div>
     </section>
 
+    <!-- ── Plain-language interpretation ───────────────────────── -->
+    <section class="panel guide-panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">How to read this forecast</h2>
+          <p class="panel-sub">A second opinion for scenario planning — not a trade instruction</p>
+        </div>
+        <span class="badge badge-neutral">PLAIN ENGLISH</span>
+      </div>
+      <div class="guide-grid">
+        <div class="guide-item">
+          <span class="guide-label">Signal</span>
+          <strong class="guide-value">{{ result.signal|default:"HOLD" }}</strong>
+          {% if result.signal == 'BUY' %}
+            <span>History suggests an upward path above today's close.</span>
+          {% elif result.signal == 'SELL' %}
+            <span>History suggests a downward path below today's close.</span>
+          {% else %}
+            <span>The evidence is mixed — wait for a clearer setup.</span>
+          {% endif %}
+        </div>
+        <div class="guide-item">
+          <span class="guide-label">Projected move</span>
+          <strong class="guide-value">{% if result.projected_change_pct %}{{ result.projected_change_pct }}%{% else %}—{% endif %}</strong>
+          <span>From the latest close to {{ result.dates|last|default:"the final day" }}.</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-label">Projected range</span>
+          <strong class="guide-value">{% if result.projected_low %}{{ result.projected_low }} – {{ result.projected_high }}{% else %}—{% endif %}</strong>
+          <span>Lowest and highest projected close in this horizon.</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-label">Trust check</span>
+          <strong class="guide-value">{% widthratio result.confidence 1 100 %}%</strong>
+          <span>Direction accuracy on unseen data. Near 50% means treat it as noise.</span>
+        </div>
+      </div>
+      <p class="note-text muted guide-foot">
+        Practical use: compare this path with the latest news and your own thesis, then decide whether to
+        enter gradually, wait, or set a stop. Never size a position from the signal alone.
+      </p>
+    </section>
+
     <!-- ── Forecast chart ───────────────────────────────────────── -->
     <section class="panel chart-panel">
       <div class="panel-head">
@@ -134,12 +177,30 @@
     <!-- ── No result: explainer ─────────────────────────────────── -->
     <section class="empty-state panel">
       <div class="empty-icon" aria-hidden="true">✦</div>
-      <h2>What is AI Forecast?</h2>
+      <h2>What is AI Forecast — and why use it?</h2>
       <p>
-        StockSight trains a model on the selected stock's historical daily prices and projects the next
-        <strong>1–90 trading days</strong>. The BUY / SELL / HOLD signal compares the projected path with the
-        model's validated direction accuracy. It is a statistical estimate — not investment advice or a guarantee.
+        It trains a model on the selected stock's own historical daily prices and projects the next
+        <strong>1–90 trading days</strong>. The BUY / SELL / HOLD signal summarises the projected direction,
+        while the accuracy metrics tell you how much weight to give it. It is a statistical second opinion —
+        not investment advice or a guarantee.
       </p>
+      <div class="why-grid">
+        <div class="why-item">
+          <span class="why-num">01</span>
+          <strong>Sanity-check a hunch</strong>
+          <span>See whether years of price history actually support the direction you believe in.</span>
+        </div>
+        <div class="why-item">
+          <span class="why-num">02</span>
+          <strong>Plan scenarios</strong>
+          <span>Use the projected range to stage entries, set alerts, or decide when to wait.</span>
+        </div>
+        <div class="why-item">
+          <span class="why-num">03</span>
+          <strong>Know when to ignore it</strong>
+          <span>If holdout direction accuracy is near 50%, the model is no better than a coin flip.</span>
+        </div>
+      </div>
       <p class="muted">
         Enter a symbol above and press <strong>Run forecast</strong>. Training happens on this machine from the
         latest cached prices; subsequent runs reuse the model until new market data arrives.

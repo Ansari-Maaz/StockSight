@@ -117,6 +117,11 @@
         <div><h2 class="panel-title">Latest news</h2><p class="panel-sub">Headlines for {{ symbol }} · refreshed daily</p></div>
         <div style="display:flex;gap:6px;align-items:center;">
           <span class="badge badge-neutral">DAILY</span>
+          {% if news_pulse %}
+            <span class="badge badge-{{ news_pulse.css }}" title="Keyword-based headline tone: {{ news_pulse.positive }} positive / {{ news_pulse.negative }} negative of {{ news_pulse.total }} headlines">
+              {{ news_pulse.label }} {{ news_pulse.positive }}▲ {{ news_pulse.negative }}▼
+            </span>
+          {% endif %}
           {% with src=history.source|default:"cache" %}
             <span class="badge {% if src == 'live' %}badge-live{% elif src == 'legacy' %}badge-stale{% else %}badge-neutral{% endif %}">{{ src|upper }}</span>
             {% if history.stale %}<span class="badge badge-stale">STALE</span>{% endif %}
