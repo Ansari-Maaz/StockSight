@@ -549,7 +549,23 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
 .chart-panel { padding-bottom: 14px; }
 .chart-wrap { position: relative; height: 320px; width: 100%; }
 .chart-wrap-lg { height: 360px; }
+.chart-wrap-sm { height: 190px; }
 .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+.indicator-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px; }
+.indicator-label { margin-right: 2px; color: var(--dim); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.indicator-toggle {
+  padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted); font-size: 10.5px; font-weight: 700;
+  cursor: pointer; transition: color .18s, background .18s, border-color .18s, transform .18s;
+}
+.indicator-toggle:hover { color: var(--primary); border-color: var(--primary-line); transform: translateY(-1px); }
+.indicator-toggle.active { color: var(--primary); background: var(--primary-soft); border-color: var(--primary-line); }
+
+.backtest-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.backtest-metrics div { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.backtest-metrics span { display: block; color: var(--dim); font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.backtest-metrics strong { display: block; margin-top: 4px; color: var(--text); font-size: 14px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
 .legend-dot.cyan { background: var(--cyan); }
 .legend-dot.emerald { background: var(--emerald); }
@@ -807,6 +823,8 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
   .info-grid { grid-template-columns: minmax(0, 1fr); }
   .chart-wrap { height: 270px; }
   .chart-wrap-lg { height: 300px; }
+  .chart-wrap-sm { height: 180px; }
+  .backtest-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .company-head-panel { align-items: flex-start; }
   .company-actions { width: 100%; }
   .company-actions .btn { flex: 1; }

@@ -52,6 +52,10 @@ class PredictionResult:
     history_dates: list[str]
     history_close: list[float]
     metrics: dict
+    backtest_dates: list[str]
+    backtest_actual: list[float]
+    backtest_predicted: list[float]
+    backtest_naive: list[float]
     signal: str
     confidence: float
     model_type: str
@@ -70,6 +74,10 @@ class PredictionResult:
             "history_dates": self.history_dates,
             "history_close": [round(float(p), 2) for p in self.history_close],
             "metrics": self.metrics,
+            "backtest_dates": self.backtest_dates,
+            "backtest_actual": [round(float(p), 2) for p in self.backtest_actual],
+            "backtest_predicted": [round(float(p), 2) for p in self.backtest_predicted],
+            "backtest_naive": [round(float(p), 2) for p in self.backtest_naive],
             "signal": self.signal,
             "confidence": round(float(self.confidence), 3),
             "model_type": self.model_type,
@@ -343,6 +351,10 @@ def predict(
     seq_len = trained_model["seq_len"]
 
     # Evaluate on the chronological holdout.
+    backtest_dates: list[str] = []
+    backtest_actual: list[float] = []
+    backtest_predicted: list[float] = []
+    backtest_naive: list[float] = []
     if len(x_val):
         if use_backend == "lstm":
             val_preds = model.predict(x_val.reshape(-1, seq_len, 1), verbose=0).ravel()
@@ -356,6 +368,10 @@ def predict(
         pred_prices = prev_prices * (1 + val_preds / RETURN_SCALE)
         naive_prices = prev_prices  # "tomorrow = today" baseline
         metrics = _metrics(actual_prices, pred_prices, naive_prices)
+        backtest_dates = [d.strftime("%d %b %y") for d in df.index[val_start: val_start + len(y_val)]][-120:]
+        backtest_actual = [float(v) for v in actual_prices][-120:]
+        backtest_predicted = [float(v) for v in pred_prices][-120:]
+        backtest_naive = [float(v) for v in naive_prices][-120:]
     else:
         metrics = _metrics(np.array([]), np.array([]), np.array([]))
 
@@ -395,6 +411,10 @@ def predict(
         history_dates=[d.strftime("%d %b %y") for d in df.index[-90:]],
         history_close=[float(v) for v in closes[-90:].ravel()],
         metrics=metrics,
+        backtest_dates=backtest_dates,
+        backtest_actual=backtest_actual,
+        backtest_predicted=backtest_predicted,
+        backtest_naive=backtest_naive,
         signal=signal,
         confidence=direction,
         model_type={"lstm": "LSTM (TensorFlow)", "sklearn": "Gradient Boosting (scikit-learn)",

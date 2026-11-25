@@ -100,6 +100,13 @@
           <div><h2 class="panel-title">Price history</h2><p class="panel-sub">Daily closing price</p></div>
           <span class="legend-dot cyan"></span>
         </div>
+        <div class="indicator-bar">
+          <span class="indicator-label">Overlays</span>
+          <button type="button" class="indicator-toggle" data-indicator="sma20" aria-pressed="false">SMA 20</button>
+          <button type="button" class="indicator-toggle" data-indicator="sma50" aria-pressed="false">SMA 50</button>
+          <button type="button" class="indicator-toggle" data-indicator="ema20" aria-pressed="false">EMA 20</button>
+          <button type="button" class="indicator-toggle" data-indicator="bb" aria-pressed="false">Bollinger</button>
+        </div>
         <div class="chart-wrap"><canvas id="detailChart"></canvas></div>
       </div>
       <div class="panel chart-panel">
@@ -110,6 +117,8 @@
         <div class="chart-wrap"><canvas id="detailVolume"></canvas></div>
       </div>
     </section>
+
+    {% include "partials/indicators.html" %}
 
     <!-- ── News ─────────────────────────────────────────────────── -->
     <section class="panel">
@@ -146,6 +155,7 @@
 {% block chart_data %}
   {% if has_data %}
     {{ series|json_script:"mm-detail-series" }}
+    {{ indicators|json_script:"mm-indicators" }}
     <script>
       (function () {
         var el = document.getElementById('mm-detail-series');

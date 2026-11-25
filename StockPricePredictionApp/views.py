@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .services import data as data_service
+from .services import indicators as indicator_service
 from .services import market as market_service
 from .services import news as news_service
 from .services import predictor
@@ -126,6 +127,7 @@ def home(request):
         series = _series(df.tail(252)) if not df.empty else _series(pd.DataFrame(
             columns=data_service.REQUIRED_COLUMNS, index=pd.DatetimeIndex([])
         ))
+        indicators = indicator_service.compute(df.tail(252)) if not df.empty else {}
         news = news_service.get_news(symbol) if not df.empty else []
         suggestions = [{**s, "label": s["Symbol"]} for s in market_service.search_universe(symbol)]
         has_data = not df.empty
@@ -135,6 +137,7 @@ def home(request):
         df = history.df
         quote, series, news, suggestions = {}, _series(pd.DataFrame(
             columns=data_service.REQUIRED_COLUMNS, index=pd.DatetimeIndex([]))), [], []
+        indicators = {}
         has_data, error = False, None
 
     context = {
@@ -142,6 +145,7 @@ def home(request):
         "symbol": symbol,
         "company": symbol,
         "series": series,
+        "indicators": indicators,
         "stats": _stats(df, quote) if has_data else {},
         "quote": quote,
         "news": news,
@@ -293,12 +297,14 @@ def details(request, id):
     quote = data_service.get_quote(symbol, refresh="never") if not df.empty else {}
     info = _company_info(symbol) if not df.empty else {}
     news = news_service.get_news(symbol) if not df.empty else []
+    chart_df = df.tail(500) if not df.empty else df
     return render(request, "details.html", {
         "nav_active": "stocks",
         "symbol": symbol,
         "company": info.get("longName") or info.get("shortName") or symbol,
         "info": info,
-        "series": _series(df.tail(500)) if not df.empty else {"labels": [], "close": [], "volume": []},
+        "series": _series(chart_df) if not chart_df.empty else {"labels": [], "close": [], "volume": []},
+        "indicators": indicator_service.compute(chart_df) if not chart_df.empty else {},
         "stats": _stats(df, quote) if not df.empty else {},
         "quote": quote,
         "news": news,

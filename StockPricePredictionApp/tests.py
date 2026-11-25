@@ -13,6 +13,7 @@ import pandas as pd
 from django.test import Client, TestCase
 
 from StockPricePredictionApp.services import data as data_service
+from StockPricePredictionApp.services import indicators
 from StockPricePredictionApp.services import news as news_service
 from StockPricePredictionApp.services import predictor
 from StockPricePredictionApp.services import sentiment
@@ -101,6 +102,26 @@ class DataRepositoryTests(TempDataMixin, unittest.TestCase):
         self.assertIsNotNone(result.error)
 
 
+class IndicatorTests(unittest.TestCase):
+    def test_indicator_series_align_and_warmup(self):
+        df = synthetic_frame(days=120)
+        values = indicators.compute(df)
+        self.assertEqual(len(values["labels"]), len(df))
+        self.assertEqual(len(values["sma20"]), len(df))
+        self.assertIsNone(values["sma20"][18])
+        self.assertAlmostEqual(values["sma20"][19], round(df["Close"].iloc[:20].mean(), 2), places=2)
+        self.assertIsNone(values["sma50"][48])
+        self.assertIsNone(values["macd"][24])
+        self.assertIsNotNone(values["bb_upper"][-1])
+        self.assertGreaterEqual(values["bb_upper"][-1], values["bb_lower"][-1])
+        rsi_values = [v for v in values["rsi"] if v is not None]
+        self.assertTrue(rsi_values)
+        self.assertTrue(all(0 <= v <= 100 for v in rsi_values))
+
+    def test_empty_frame_returns_empty(self):
+        self.assertEqual(indicators.compute(pd.DataFrame()), {})
+
+
 class PredictorTests(TempDataMixin, unittest.TestCase):
     def test_predict_from_synthetic_data_with_numpy_backend(self):
         result = predictor.predict("TEST", days=5, backend="numpy", seq_len=20,
@@ -111,6 +132,10 @@ class PredictorTests(TempDataMixin, unittest.TestCase):
         self.assertGreater(result.metrics["samples"], 0)
         self.assertTrue(result.fresh)
         self.assertEqual(result.model_type, "Linear regression (NumPy)")
+        self.assertEqual(len(result.backtest_dates), result.metrics["samples"])
+        self.assertEqual(len(result.backtest_actual), len(result.backtest_predicted))
+        self.assertEqual(len(result.backtest_naive), len(result.backtest_actual))
+        self.assertIn("backtest_actual", result.as_dict())
 
     def test_cached_model_is_reused(self):
         kwargs = dict(days=3, backend="numpy", seq_len=20, refresh_data=False)

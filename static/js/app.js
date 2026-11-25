@@ -64,6 +64,12 @@
     return String(Math.round(n));
   }
 
+  function readJsonScript(id) {
+    var el = document.getElementById(id);
+    if (!el) { return null; }
+    try { return JSON.parse(el.textContent); } catch (e) { return null; }
+  }
+
   /* ── Toast system ─────────────────────────────────────────────────── */
 
   function toast(message, kind) {
@@ -241,7 +247,8 @@
       ['compareChart', 'compare'],
       ['normChart', 'norm'],
       ['detailChart', 'detail'],
-      ['detailVolume', 'detailVolume']
+      ['detailVolume', 'detailVolume'],
+      ['backtestChart', 'backtest']
     ];
     chartRegistry = [];
     map.forEach(function (pair) {
@@ -254,6 +261,165 @@
       chartRegistry.push({ id: 'forecastChart', factory: function () { return buildForecastConfig(data.forecast); }, chart: null });
     }
     renderCharts();
+  }
+
+  /* ── Technical indicators (RSI, MACD, overlays) ───────────────────── */
+
+  var indicatorCharts = { rsi: null, macd: null };
+  var indicatorState = { sma20: false, sma50: false, ema20: false, bb: false };
+  var indicatorTogglesBound = false;
+
+  function getChart(id) {
+    for (var i = 0; i < chartRegistry.length; i += 1) {
+      if (chartRegistry[i].id === id) { return chartRegistry[i].chart; }
+    }
+    return null;
+  }
+
+  function indicatorColor(token) {
+    return themeVar(token, '#6366f1');
+  }
+
+  function applyIndicatorOverlays(ind) {
+    var chart = getChart('priceChart') || getChart('detailChart');
+    if (!chart || !chart.data) { return; }
+
+    chart.data.datasets = chart.data.datasets.filter(function (ds) { return !ds.__indicator; });
+    var bandColor = indicatorColor('--dim');
+    var overlays = [
+      { key: 'sma20', label: 'SMA 20', data: ind.sma20, color: indicatorColor('--amber'), dash: [] },
+      { key: 'sma50', label: 'SMA 50', data: ind.sma50, color: indicatorColor('--violet'), dash: [] },
+      { key: 'ema20', label: 'EMA 20', data: ind.ema20, color: indicatorColor('--cyan'), dash: [4, 3] },
+      { key: 'bb_upper', label: 'Bollinger upper', data: ind.bb_upper, color: bandColor, dash: [3, 3] },
+      { key: 'bb_lower', label: 'Bollinger lower', data: ind.bb_lower, color: bandColor, dash: [3, 3],
+        fill: '-1', backgroundColor: hexToRgba(bandColor, 0.06) }
+    ];
+
+    overlays.forEach(function (def) {
+      if (!def.data) { return; }
+      chart.data.datasets.push({
+        label: def.label,
+        data: def.data,
+        borderColor: def.color,
+        backgroundColor: def.backgroundColor || 'transparent',
+        borderWidth: 1.4,
+        borderDash: def.dash,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        fill: def.fill || false,
+        tension: 0.25,
+        hidden: def.key.indexOf('bb_') === 0 ? !indicatorState.bb : !indicatorState[def.key],
+        __indicator: true,
+        __key: def.key
+      });
+    });
+    chart.update();
+  }
+
+  function applyIndicatorVisibility() {
+    var chart = getChart('priceChart') || getChart('detailChart');
+    if (chart) {
+      chart.data.datasets.forEach(function (ds, index) {
+        if (!ds.__indicator) { return; }
+        var visible = ds.__key.indexOf('bb_') === 0 ? indicatorState.bb : indicatorState[ds.__key];
+        chart.setDatasetVisibility(index, !!visible);
+      });
+      chart.update();
+    }
+
+    document.querySelectorAll('.indicator-toggle').forEach(function (btn) {
+      var key = btn.getAttribute('data-indicator');
+      var on = key === 'bb' ? indicatorState.bb : indicatorState[key];
+      btn.classList.toggle('active', !!on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function buildRsiChart(ind) {
+    var canvas = document.getElementById('rsiChart');
+    if (!canvas || typeof Chart === 'undefined') { return; }
+    if (indicatorCharts.rsi) {
+      try { indicatorCharts.rsi.destroy(); } catch (e) {}
+    }
+    var options = baseOptions();
+    options.plugins.legend.display = false;
+    options.scales.y.min = 0;
+    options.scales.y.max = 100;
+    options.scales.y.ticks.stepSize = 25;
+    options.plugins.tooltip.filter = function (item) { return item.datasetIndex === 0; };
+
+    var labels = ind.labels || [];
+    var overbought = labels.map(function () { return 70; });
+    var oversold = labels.map(function () { return 30; });
+    indicatorCharts.rsi = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'RSI 14', data: ind.rsi || [], borderColor: indicatorColor('--chart-1'),
+            backgroundColor: 'transparent', borderWidth: 1.8, pointRadius: 0, pointHoverRadius: 3,
+            fill: false, tension: 0.25 },
+          { label: '70', data: overbought, borderColor: hexToRgba(indicatorColor('--rose'), .4),
+            borderWidth: 1, borderDash: [4, 4], pointRadius: 0, fill: false },
+          { label: '30', data: oversold, borderColor: hexToRgba(indicatorColor('--emerald'), .4),
+            borderWidth: 1, borderDash: [4, 4], pointRadius: 0, fill: false }
+        ]
+      },
+      options: options
+    });
+  }
+
+  function buildMacdChart(ind) {
+    var canvas = document.getElementById('macdChart');
+    if (!canvas || typeof Chart === 'undefined') { return; }
+    if (indicatorCharts.macd) {
+      try { indicatorCharts.macd.destroy(); } catch (e) {}
+    }
+    var options = baseOptions();
+    options.scales.y.ticks.maxTicksLimit = 5;
+    var positive = hexToRgba(indicatorColor('--emerald'), .45);
+    var negative = hexToRgba(indicatorColor('--rose'), .45);
+    var histogram = (ind.macd_hist || []).map(function (value) {
+      if (value === null || value === undefined) { return 'transparent'; }
+      return value >= 0 ? positive : negative;
+    });
+
+    indicatorCharts.macd = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ind.labels || [],
+        datasets: [
+          { type: 'bar', label: 'Histogram', data: ind.macd_hist || [], backgroundColor: histogram,
+            borderColor: histogram, borderWidth: 0, order: 2 },
+          { type: 'line', label: 'MACD', data: ind.macd || [], borderColor: indicatorColor('--chart-1'),
+            backgroundColor: 'transparent', borderWidth: 1.8, pointRadius: 0, fill: false, order: 1 },
+          { type: 'line', label: 'Signal', data: ind.macd_signal || [], borderColor: indicatorColor('--amber'),
+            backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0,
+            fill: false, order: 1 }
+        ]
+      },
+      options: options
+    });
+  }
+
+  function initIndicators() {
+    var ind = readJsonScript('mm-indicators');
+    if (!ind) { return; }
+    applyIndicatorOverlays(ind);
+    buildRsiChart(ind);
+    buildMacdChart(ind);
+    applyIndicatorVisibility();
+
+    if (!indicatorTogglesBound) {
+      document.querySelectorAll('.indicator-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var key = btn.getAttribute('data-indicator');
+          indicatorState[key] = !indicatorState[key];
+          applyIndicatorVisibility();
+        });
+      });
+      indicatorTogglesBound = true;
+    }
   }
 
   /* ── Tables built from chart data ─────────────────────────────────── */
@@ -480,6 +646,7 @@
     try { localStorage.setItem('mm-theme', theme); } catch (e) {}
     syncThemeButton();
     renderCharts();
+    initIndicators();
   }
 
   function initTheme() {
@@ -522,6 +689,7 @@
 
   function boot() {
     initCharts();
+    initIndicators();
     buildOhlcTable();
     buildForecastTable();
     colourNumericCells();

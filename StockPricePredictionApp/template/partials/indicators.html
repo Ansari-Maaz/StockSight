@@ -1,0 +1,24 @@
+<!-- RSI + MACD panes, fed by services/indicators.py and rendered in app.js. -->
+<section class="grid grid-2">
+  <div class="panel chart-panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">RSI · 14</h2>
+        <p class="panel-sub">Momentum oscillator · 70 overbought / 30 oversold</p>
+      </div>
+      <span class="badge badge-neutral">INDICATOR</span>
+    </div>
+    <div class="chart-wrap chart-wrap-sm"><canvas id="rsiChart"></canvas></div>
+  </div>
+
+  <div class="panel chart-panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">MACD · 12/26/9</h2>
+        <p class="panel-sub">Trend and momentum crossover</p>
+      </div>
+      <span class="badge badge-neutral">INDICATOR</span>
+    </div>
+    <div class="chart-wrap chart-wrap-sm"><canvas id="macdChart"></canvas></div>
+  </div>
+</section>

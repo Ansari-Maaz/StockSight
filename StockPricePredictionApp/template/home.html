@@ -163,6 +163,13 @@
           </div>
           <span class="legend-dot cyan"></span>
         </div>
+        <div class="indicator-bar">
+          <span class="indicator-label">Overlays</span>
+          <button type="button" class="indicator-toggle" data-indicator="sma20" aria-pressed="false">SMA 20</button>
+          <button type="button" class="indicator-toggle" data-indicator="sma50" aria-pressed="false">SMA 50</button>
+          <button type="button" class="indicator-toggle" data-indicator="ema20" aria-pressed="false">EMA 20</button>
+          <button type="button" class="indicator-toggle" data-indicator="bb" aria-pressed="false">Bollinger</button>
+        </div>
         <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
       </div>
       <div class="panel chart-panel">
@@ -176,6 +183,8 @@
         <div class="chart-wrap"><canvas id="volumeChart"></canvas></div>
       </div>
     </section>
+
+    {% include "partials/indicators.html" %}
 
     <!-- ── OHLC table + news ────────────────────────────────────── -->
     <section class="grid grid-2">
@@ -229,6 +238,7 @@
 {% block chart_data %}
   {% if has_data %}
     {{ series|json_script:"mm-home-series" }}
+    {{ indicators|json_script:"mm-indicators" }}
     <script>
       (function () {
         var el = document.getElementById('mm-home-series');

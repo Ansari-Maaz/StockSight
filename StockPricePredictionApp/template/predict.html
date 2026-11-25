@@ -145,6 +145,34 @@
       <div class="chart-wrap chart-wrap-lg"><canvas id="forecastChart"></canvas></div>
     </section>
 
+    <!-- ── Holdout backtest ─────────────────────────────────────── -->
+    <section class="panel chart-panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Holdout backtest</h2>
+          <p class="panel-sub">Model vs naive baseline on unseen chronological data</p>
+        </div>
+        <span class="badge badge-neutral">{{ result.metrics.samples|default:0 }} samples</span>
+      </div>
+      <div class="chart-wrap chart-wrap-lg"><canvas id="backtestChart"></canvas></div>
+      <div class="backtest-metrics">
+        <div><span>Model RMSE</span><strong>{{ result.metrics.rmse|floatformat:3|default:"—" }}</strong></div>
+        <div><span>Naive RMSE</span><strong>{{ result.metrics.naive_rmse|floatformat:3|default:"—" }}</strong></div>
+        <div>
+          <span>Improvement vs naive</span>
+          <strong class="{% if result.metrics.rmse_vs_naive > 0 %}pos{% elif result.metrics.rmse_vs_naive < 0 %}neg{% endif %}">
+            {{ result.metrics.rmse_vs_naive|floatformat:1|default:"—" }}%
+          </strong>
+        </div>
+        <div><span>Direction accuracy</span><strong>{% widthratio result.metrics.direction_accuracy 1 100 %}%</strong></div>
+      </div>
+      <p class="note-text muted">
+        The first 90% of sequences train the model; the final 10% is held out and never seen during
+        training. The naive baseline predicts “tomorrow equals today”. A negative improvement means
+        the model lost to that baseline.
+      </p>
+    </section>
+
     <!-- ── Forecast table + note ────────────────────────────────── -->
     <section class="grid grid-2">
       <div class="panel">
@@ -271,6 +299,15 @@
           history_close: r.history_close || [],
           dates: r.dates || [],
           predictions: r.predictions || []
+        };
+        window.MM_CHART_DATA.backtest = {
+          type: 'line',
+          labels: r.backtest_dates || [],
+          datasets: [
+            { label: 'Actual', data: r.backtest_actual || [], borderColor: '#4f46e5', backgroundColor: '#4f46e5', fill: false, borderWidth: 2 },
+            { label: 'Model', data: r.backtest_predicted || [], borderColor: '#059669', backgroundColor: '#059669', borderDash: [6, 4], fill: false, borderWidth: 2 },
+            { label: 'Naive', data: r.backtest_naive || [], borderColor: '#94a3b8', backgroundColor: '#94a3b8', borderDash: [2, 3], fill: false, borderWidth: 1.5 }
+          ]
         };
       })();
     </script>
