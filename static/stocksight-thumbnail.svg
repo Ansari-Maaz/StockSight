@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="StockSight">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#151b3a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="55%">
+      <stop stop-color="#6366f1" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="106" y1="78" x2="406" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset=".52" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity=".05" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#4f46e5" flood-opacity=".45"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#grid)"/>
+  <circle cx="256" cy="215" r="220" fill="url(#glow)"/>
+
+  <rect x="106" y="94" width="300" height="300" rx="84" fill="#4f46e5" opacity=".28"/>
+  <rect x="106" y="78" width="300" height="300" rx="84" fill="url(#mark)"/>
+  <path d="M160 228c26-43 62-65 96-65s70 22 96 65c-26 43-62 65-96 65s-70-22-96-65Z"
+        fill="none" stroke="#ffffff" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M205 245l27-33 22 16 38-48"
+        fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="292" cy="180" r="12" fill="#ffffff"/>
+
+  <text x="256" y="436" text-anchor="middle" fill="#ffffff"
+        font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700" letter-spacing="1">StockSight</text>
+  <text x="256" y="468" text-anchor="middle" fill="#a5b4fc"
+        font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="4">AI MARKET INTELLIGENCE</text>
+</svg>

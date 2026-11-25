@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="StockSight banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#080d1c"/>
+      <stop offset=".55" stop-color="#0f1630"/>
+      <stop offset="1" stop-color="#171d3d"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="24%" cy="42%" r="60%">
+      <stop stop-color="#6366f1" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brand" x1="150" y1="300" x2="410" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366f1"/>
+      <stop offset=".52" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="line" x1="60" y1="720" x2="1540" y2="250" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818cf8" stop-opacity=".25"/>
+      <stop offset=".6" stop-color="#a5b4fc" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity=".045" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#4f46e5" flood-opacity=".5"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+  <circle cx="360" cy="390" r="470" fill="url(#glow)"/>
+
+  <!-- Subtle candlestick texture -->
+  <g stroke="#8b9cff" stroke-opacity=".16" stroke-width="2" fill="#8b9cff" fill-opacity=".10">
+    <path d="M120 700V640 M120 676h34v34h-34z"/>
+    <path d="M220 720V660 M220 690h34v36h-34z"/>
+    <path d="M320 690V620 M320 650h34v36h-34z"/>
+    <path d="M420 710V650 M420 670h34v36h-34z"/>
+    <path d="M520 660V590 M520 620h34v36h-34z"/>
+    <path d="M620 680V620 M620 640h34v36h-34z"/>
+    <path d="M720 630V560 M720 590h34v36h-34z"/>
+    <path d="M820 650V590 M820 610h34v36h-34z"/>
+    <path d="M920 590V520 M920 550h34v36h-34z"/>
+    <path d="M1020 610V550 M1020 570h34v36h-34z"/>
+    <path d="M1120 550V490 M1120 510h34v36h-34z"/>
+    <path d="M1220 570V510 M1220 530h34v36h-34z"/>
+    <path d="M1320 500V440 M1320 460h34v36h-34z"/>
+    <path d="M1420 520V460 M1420 480h34v36h-34z"/>
+    <path d="M1520 440V380 M1520 400h34v36h-34z"/>
+  </g>
+
+  <!-- Rising trend line -->
+  <path d="M60 750 260 700 420 730 600 660 760 700 940 630 1120 650 1320 430 1540 250"
+        fill="none" stroke="#a5b4fc" stroke-opacity=".22" stroke-width="18" filter="url(#soft)"/>
+  <path d="M60 750 260 700 420 730 600 660 760 700 940 630 1120 650 1320 430 1540 250"
+        fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="1540" cy="250" r="11" fill="#ffffff"/>
+  <circle cx="1540" cy="250" r="24" fill="#a5b4fc" fill-opacity=".22"/>
+
+  <!-- Brand mark -->
+  <rect x="150" y="320" width="260" height="260" rx="70" fill="#4f46e5" opacity=".28"/>
+  <rect x="150" y="300" width="260" height="260" rx="70" fill="url(#brand)"/>
+  <path d="M190 430c24-38 54-57 90-57s66 19 90 57c-24 38-54 57-90 57s-66-19-90-57Z"
+        fill="none" stroke="#ffffff" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M225 445l24-29 19 14 33-42"
+        fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="301" cy="388" r="10" fill="#ffffff"/>
+
+  <!-- Copy -->
+  <text x="520" y="420" fill="#ffffff" font-family="Arial, Helvetica, sans-serif"
+        font-size="118" font-weight="700" letter-spacing="-2">StockSight</text>
+  <text x="526" y="484" fill="#a5b4fc" font-family="Arial, Helvetica, sans-serif"
+        font-size="28" font-weight="700" letter-spacing="7">AI MARKET INTELLIGENCE</text>
+  <text x="526" y="544" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif"
+        font-size="25">Daily stock news · Live prices · AI forecasts</text>
+
+  <g>
+    <rect x="520" y="596" width="372" height="62" rx="31" fill="#4f46e5"/>
+    <text x="706" y="636" text-anchor="middle" fill="#ffffff"
+          font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">Analyze smarter →</text>
+  </g>
+</svg>
