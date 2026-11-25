@@ -50,6 +50,18 @@
     {% endif %}
   </section>
 
+  <!-- ── Browser-local watchlist ──────────────────────────────────── -->
+  <section class="panel" id="myWatchlistPanel" hidden>
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">My watchlist</h2>
+        <p class="panel-sub">Saved in this browser — no account required.</p>
+      </div>
+      <span class="badge badge-neutral">LOCAL</span>
+    </div>
+    <div class="chip-row" id="myWatchlist"></div>
+  </section>
+
   {% if not symbol %}
     <section class="empty-state panel welcome-panel">
       <img class="empty-logo" src="{% static 'logo.svg' %}" alt="" width="64" height="64">

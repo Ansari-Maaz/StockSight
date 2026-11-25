@@ -268,7 +268,7 @@ class ViewSmokeTests(TempDataMixin, TestCase):
                       "stale": False, "live": True}],
             "page_obj": page_obj, "total": 1, "search": "",
         }
-        for url in ["/", "/dashboard/", "/compare/", "/predict/", "/stocks/", "/details/TEST/", "/api-docs/"]:
+        for url in ["/", "/dashboard/", "/compare/", "/predict/", "/stocks/", "/portfolio/", "/alerts/", "/details/TEST/", "/api-docs/"]:
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200, url)
@@ -302,6 +302,19 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         self.assertContains(predict, "What is AI Forecast")
         self.assertContains(predict, "Sanity-check a hunch")
 
+    def test_local_tool_pages(self):
+        portfolio = self.client.get("/portfolio/")
+        self.assertTemplateUsed(portfolio, "portfolio.html")
+        self.assertContains(portfolio, "My Portfolio")
+        self.assertContains(portfolio, "LOCAL ONLY")
+        self.assertContains(portfolio, 'href="/alerts/"')
+
+        alerts = self.client.get("/alerts/")
+        self.assertTemplateUsed(alerts, "alerts.html")
+        self.assertContains(alerts, "Price & Forecast Alerts")
+        self.assertContains(alerts, "forecast_above")
+        self.assertContains(alerts, 'href="/portfolio/"')
+
     def test_api_endpoints(self):
         self.assertEqual(self.client.get("/api/health/").status_code, 200)
         response = self.client.get("/api/history/?symbol=TEST")
@@ -309,6 +322,11 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         self.assertEqual(response.json()["rows"], 320)
         response = self.client.get("/api/quote/?symbol=TEST")
         self.assertEqual(response.json()["symbol"], "TEST")
+        response = self.client.get("/api/quotes/?symbols=TEST,AAPL")
+        self.assertEqual([q["symbol"] for q in response.json()["quotes"]], ["TEST", "AAPL"])
+        response = self.client.get("/api/history/?symbol=TEST&refresh=never")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["source"], "cache")
 
     def test_prediction_via_post(self):
         from unittest.mock import MagicMock

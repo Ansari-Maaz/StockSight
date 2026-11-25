@@ -290,6 +290,29 @@ def all_stocks(request):
     })
 
 
+def _symbol_options() -> list[str]:
+    """Cached symbols, used to populate browser-side datalists."""
+    return [row["symbol"] for row in data_service.status()["symbols"]]
+
+
+def portfolio(request):
+    """Client-side portfolio and watchlist — nothing is sent to the server."""
+    return render(request, "portfolio.html", {
+        "nav_active": "portfolio",
+        "watchlist": WATCHLIST,
+        "symbol_options": _symbol_options(),
+    })
+
+
+def alerts(request):
+    """Client-side price/forecast alerts with browser notifications."""
+    return render(request, "alerts.html", {
+        "nav_active": "alerts",
+        "watchlist": WATCHLIST,
+        "symbol_options": _symbol_options(),
+    })
+
+
 def details(request, id):
     symbol = data_service.normalize_symbol(id)
     history = data_service.get_history(symbol)
@@ -351,9 +374,12 @@ def download(request, id):
 # --------------------------------------------------------------------------- #
 @require_GET
 def api_history(request):
+    refresh = request.GET.get("refresh")
+    if refresh not in {"auto", "force", "never"}:
+        refresh = "auto"
     symbol = data_service.normalize_symbol(request.GET.get("symbol") or DEFAULT_SYMBOL)
     history = data_service.get_history(
-        symbol, start=request.GET.get("start"), end=request.GET.get("end")
+        symbol, start=request.GET.get("start"), end=request.GET.get("end"), refresh=refresh
     )
     return JsonResponse({
         **history.as_dict(),
@@ -363,8 +389,21 @@ def api_history(request):
 
 @require_GET
 def api_quote(request):
+    refresh = request.GET.get("refresh")
+    if refresh not in {"auto", "force", "never"}:
+        refresh = "auto"
     symbol = data_service.normalize_symbol(request.GET.get("symbol") or DEFAULT_SYMBOL)
-    return JsonResponse(data_service.get_quote(symbol))
+    return JsonResponse(data_service.get_quote(symbol, refresh=refresh))
+
+
+@require_GET
+def api_quotes(request):
+    """Batch quotes for local-only portfolio/watchlist/alerts pages."""
+    raw = request.GET.get("symbols") or ""
+    symbols = [data_service.normalize_symbol(part) for part in raw.split(",") if part.strip()][:50]
+    return JsonResponse({
+        "quotes": [data_service.get_quote(symbol, refresh="never") for symbol in symbols if symbol]
+    })
 
 
 @csrf_exempt
