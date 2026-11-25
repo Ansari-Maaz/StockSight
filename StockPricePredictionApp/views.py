@@ -102,12 +102,19 @@ def landing(request):
         except ValueError:
             pass
 
+    hero_symbol = quotes[0]["symbol"] if quotes else DEFAULT_SYMBOL
+    hero_history = data_service.get_history(hero_symbol, refresh="never")
+    hero_df = hero_history.df.tail(60) if not hero_history.df.empty else hero_history.df
+    hero_series = _series(hero_df) if not hero_df.empty else {"labels": [], "close": []}
+
     return render(request, "landing.html", {
         "app_name": getattr(settings, "APP_NAME", "StockSight"),
         "symbol_count": status["symbol_count"],
         "data_through": newest or "—",
         "ticker": quotes,
         "hero_quote": quotes[0] if quotes else {},
+        "hero_series": hero_series,
+        "demo_symbols": WATCHLIST[:6],
         "year": date.today().year,
     })
 

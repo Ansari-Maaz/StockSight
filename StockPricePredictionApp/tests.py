@@ -280,7 +280,11 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         self.assertContains(response, "How AI Forecast works")
         self.assertContains(response, "No signup")
         self.assertContains(response, 'href="/dashboard/"')
+        self.assertContains(response, 'id="landingThemeToggle"')
+        self.assertContains(response, 'id="cmpChart"')
+        self.assertContains(response, 'data-demo-symbol="AAPL"')
         self.assertEqual([q["symbol"] for q in response.context["ticker"]], ["AAPL", "MSFT"])
+        self.assertGreater(len(response.context["hero_series"]["close"]), 1)
 
     def test_health_page_removed(self):
         self.assertEqual(self.client.get("/health/").status_code, 404)
