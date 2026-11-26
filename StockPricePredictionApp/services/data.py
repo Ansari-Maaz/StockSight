@@ -157,7 +157,9 @@ def _thread_lock(symbol: str) -> threading.Lock:
 def _file_lock(symbol: str):
     """Cross-process advisory lock so gunicorn workers don't race on refresh."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    lock_path = DATA_DIR / f".{normalize_symbol(symbol)}.lock"
+    # Reuse data_path()'s sanitisation so tickers containing '/' or similar
+    # characters cannot create nested lock paths.
+    lock_path = DATA_DIR / f".{data_path(symbol).stem}.lock"
     with open(lock_path, "w") as fh:
         fcntl.flock(fh, fcntl.LOCK_EX)
         try:

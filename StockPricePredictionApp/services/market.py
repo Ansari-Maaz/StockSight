@@ -95,11 +95,11 @@ def screener(page: int = 1, per_page: int = 10, search: str = "") -> dict:
     symbols = page_obj.object_list["Symbol"].tolist()
 
     quotes: dict[str, dict] = {}
-    # Only symbols we already cache are auto-refreshed. Obscure universe entries
-    # keep their bundled snapshot until someone explicitly opens their detail page.
+    # Every symbol on the displayed page is refreshed from the provider when it
+    # is stale. provider failures still fall back to the bundled snapshot and
+    # are marked STALE, so the screener never shows silently outdated prices.
     def quote_for(symbol: str) -> dict:
-        cached = data_service.load_local(symbol) is not None
-        return data_service.get_quote(symbol, refresh="auto" if cached else "never")
+        return data_service.get_quote(symbol, refresh="auto")
 
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {pool.submit(quote_for, s): s for s in symbols}

@@ -290,6 +290,12 @@ def predict_view(request):
                 logger.exception("Prediction failed for %s", symbol)
                 error = str(exc)
 
+    suggestions = (
+        [{**row, "label": row["Symbol"]} for row in market_service.search_universe(symbol)]
+        if symbol else []
+    )
+    symbol_options = [row["symbol"] for row in data_service.status()["symbols"]]
+
     cached = []
     for path in predictor.MODEL_DIR.glob("*.meta.json") if predictor.MODEL_DIR.exists() else []:
         try:
@@ -311,6 +317,9 @@ def predict_view(request):
         "error": error,
         "cached_models": sorted(cached, key=lambda r: r["symbol"] or ""),
         "max_days": 60,
+        "suggestions": suggestions,
+        "symbol_options": symbol_options,
+        "watchlist": WATCHLIST,
     })
 
 

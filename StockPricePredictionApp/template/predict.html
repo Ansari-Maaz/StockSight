@@ -21,7 +21,13 @@
       {% csrf_token %}
       <div class="field field-symbol">
         <label for="company1">Symbol</label>
-        <input type="text" id="company1" name="company1" value="{{ symbol|default:'' }}" placeholder="e.g. AAPL" autocomplete="off">
+        <input type="text" id="company1" name="company1" list="predictSymbols"
+               value="{{ symbol|default:'' }}" placeholder="Search a symbol or company…" autocomplete="off">
+        <datalist id="predictSymbols">
+          {% for s in suggestions %}<option value="{{ s.label|default:s.Symbol }}">{{ s.Name|default:'' }}</option>{% endfor %}
+          {% for s in symbol_options %}<option value="{{ s }}"></option>{% endfor %}
+          {% for s in watchlist %}<option value="{{ s }}"></option>{% endfor %}
+        </datalist>
       </div>
       <div class="field field-range">
         <label for="daysRange">Horizon <span class="accent-text">{{ days|default:7 }} days</span></label>
@@ -275,6 +281,38 @@
 {% endblock %}
 
 {% block chart_data %}
+  <script>
+    (function () {
+      var input = document.getElementById('company1');
+      var list = document.getElementById('predictSymbols');
+      if (!input || !list) { return; }
+      var timer = null;
+      input.addEventListener('input', function () {
+        window.clearTimeout(timer);
+        var q = input.value.trim();
+        if (!q) { return; }
+        timer = window.setTimeout(function () {
+          fetch('{% url "api_search" %}?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              var seen = {};
+              list.innerHTML = '';
+              (data.results || []).forEach(function (row) {
+                var value = row.Symbol || row.symbol || '';
+                if (!value || seen[value]) { return; }
+                seen[value] = 1;
+                var opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = row.Name || row.name || value;
+                list.appendChild(opt);
+              });
+            })
+            .catch(function () {});
+        }, 180);
+      });
+    })();
+  </script>
+
   {% if has_result %}
     {{ result|json_script:"mm-forecast" }}
     <script>
