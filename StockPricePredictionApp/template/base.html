@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#f4f6fb">
-  <meta name="description" content="StockSight — modern market intelligence, screening and AI forecasting.">
+  <meta name="description" content="StockSight — modern market intelligence, screening and daily stock news.">
   <title>{% block title %}Overview{% endblock %} · {{ app_name|default:"StockSight" }}</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
@@ -64,12 +64,6 @@
         <a class="nav-link{% if nav_active == 'compare' %} active{% endif %}" href="{% url 'compare' %}" title="Compare">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg>
           <span>Compare</span>
-        </a>
-
-        <a class="nav-link{% if nav_active == 'predict' %} active{% endif %}" href="{% url 'predict' %}" title="AI Forecast">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m5.6 5.6 2.1 2.1"/><path d="m16.3 16.3 2.1 2.1"/><path d="m18.4 5.6-2.1 2.1"/><path d="m7.7 16.3-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
-          <span>AI Forecast</span>
-          <span class="nav-tag">AI</span>
         </a>
 
         <a class="nav-link{% if nav_active == 'stocks' %} active{% endif %}" href="{% url 'all_stocks' %}" title="Market Screener">

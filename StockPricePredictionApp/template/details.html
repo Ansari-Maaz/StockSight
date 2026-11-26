@@ -23,13 +23,6 @@
     </div>
     <div class="company-actions">
       <button type="button" class="btn btn-ghost watch-toggle" data-watch="{{ symbol|default:'' }}" aria-pressed="false">☆ Watch</button>
-      <a class="btn btn-ghost" href="{% url 'predict' %}?symbol={{ symbol|default:'' }}">AI forecast ↗</a>
-      <form method="post" action="{% url 'predict' %}" class="inline-form">
-        {% csrf_token %}
-        <input type="hidden" name="company1" value="{{ symbol|default:'' }}">
-        <input type="hidden" name="days" value="7">
-        <button type="submit" class="btn btn-primary">Run forecast</button>
-      </form>
       <a class="btn btn-ghost" href="{% url 'download' '0' %}?symbol={{ symbol|default:'' }}">CSV ↓</a>
     </div>
   </section>

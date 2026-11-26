@@ -1,12 +1,11 @@
 # Lightweight Docker image for Render's free tier (512 MB RAM).
-# Uses requirements-render.txt and the NumPy forecasting backend.
+# The complete project with forecasting lives on the `full` branch.
 
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=StockPricePrediction.settings \
-    STOCKSIGHT_LITE=1
+    DJANGO_SETTINGS_MODULE=StockPricePrediction.settings
 
 WORKDIR /app
 
@@ -14,8 +13,8 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends libgomp1 curl \
   && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-render.txt .
-RUN pip install --no-cache-dir -r requirements-render.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

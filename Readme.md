@@ -1,6 +1,8 @@
 # StockSight
 
-A production-ready stock analytics and forecasting dashboard built with **Django 5**, **yfinance**, **pandas**, and a **TensorFlow LSTM** (with automatic CPU fallbacks). It runs entirely from a local market-data cache, keeps that cache up to date automatically, and works offline when the data provider is unavailable.
+> **This is the lightweight `main` branch**, built for Render's free tier. The complete original project — including the TensorFlow AI Forecast and full deployment stack — is kept on the [`full`](https://github.com/Ansari-Maaz/StockSight/tree/full) branch.
+
+A lightweight stock analytics dashboard built with **Django 5**, **yfinance** and **pandas**. It runs from a local market-data cache, refreshes it on demand, and works offline when the data provider is unavailable.
 
 > The old version depended on hard-coded credentials, hard-coded date ranges, global in-memory DataFrames, and retrained a model on **every** request. This version removes all of that.
 
@@ -13,12 +15,10 @@ A production-ready stock analytics and forecasting dashboard built with **Django
 | **Local-first data** | One CSV per ticker in `data/market/`. Pages work with zero network access. |
 | **Always up to date** | Stale symbols are incrementally refreshed from yfinance as soon as a new trading session is expected, plus `refresh_data` for cron/Celery/Docker. |
 | **Daily stock news** | Yahoo Finance RSS + Google News RSS + yfinance, deduplicated and cached per symbol; optional Finnhub/NewsAPI keys. Shown on the overview, details and compare pages. |
-| **Forecasting** | LSTM → scikit-learn Gradient Boosting → NumPy regression, automatic fallback chain. Models are trained **from your data**, cached by fingerprint, and reused. |
-| **Honest metrics** | RMSE, MAE, MAPE, directional accuracy and a naive-baseline comparison on a chronological holdout. |
 | **No secret keys required** | All core features work without API keys; Finnhub/NewsAPI are optional upgrades. |
 | **Modern UI** | Animated public landing page at `/`, plus a responsive dashboard at `/dashboard/` with **light/dark theme toggle** (persisted in `localStorage`), a **collapsible sidebar**, locally bundled Plus Jakarta Sans + JetBrains Mono fonts, indigo/violet palette, semantic colour coding, and Chart.js charts that re-theme with the active mode (vendored locally). No CDN dependency at runtime. |
-| **Local workspace** | Browser-only watchlist and price/forecast alerts. No account or server-side user state. Includes a `Ctrl/⌘K` command palette, an installable PWA with an offline shell, SEO files and branded error pages. |
-| **JSON API** | `/api/history/`, `/api/quote/`, `/api/quotes/`, `/api/predict/`, `/api/search/`, `/api/health/`, `/api/refresh/`. |
+| **Local workspace** | Browser-only watchlist and price alerts. No account or server-side user state. Includes a `Ctrl/⌘K` command palette, an installable PWA with an offline shell, SEO files and branded error pages. |
+| **JSON API** | `/api/history/`, `/api/quote/`, `/api/quotes/`, `/api/search/`, `/api/health/`, `/api/refresh/`. |
 | **Production bits** | Env-driven settings, security headers, gunicorn, Dockerfile + compose, cron example, logging, tests. |
 
 ---
@@ -34,10 +34,7 @@ python manage.py migrate
 # 1. Import market history into the local cache (one-time, ~10 years)
 python manage.py seed_data
 
-# 2. Train a model for a symbol (optional — predict page trains on first use)
-python manage.py train_model AAPL
-
-# 3. Run
+# 2. Run
 python manage.py runserver
 ```
 
@@ -97,39 +94,12 @@ The overview, details and compare pages all read from this cache, so every visit
 
 ---
 
-## Forecasting pipeline
-
-`services/predictor.py` is independent of Django views:
-
-1. Load OHLCV for the symbol (auto-refreshing if needed).
-2. Scale closing prices to `[0, 1]`, build 60-day sliding windows.
-3. Chronological 90/10 train/validation split (no look-ahead leakage).
-4. Train an LSTM (`LSTM 64 → Dropout → LSTM 32 → Dense 16 → Dense 1`) with early stopping; evaluate on the holdout.
-5. Produce an N-day recursive forecast (weekend-aware dates) and a BUY / SELL / HOLD signal based on trend, current price, and directional accuracy.
-6. Cache the model + scaler under `models/` keyed by a fingerprint of `(symbol, row count, last date, backend, window)`. New data automatically invalidates the cache.
-
-If TensorFlow is missing or training fails, it falls back to `HistGradientBoostingRegressor`, then to a NumPy ridge solution. You can force a backend with `--backend sklearn` or `{"backend": "sklearn"}`.
-
-### What the AI Forecast means
-
-"AI Forecast" is a statistical projection, not a prediction with guaranteed outcomes. The model learns patterns from the stock's own historical daily closing prices and extrapolates the next 1–90 trading days. The **BUY / SELL / HOLD** signal compares the projected price path with the model's validated directional accuracy and the latest close. Metrics (RMSE, MAE, MAPE, directional accuracy, naive-baseline comparison) are computed on a chronological holdout so you can judge whether the model is actually useful. The forecast is automatically retrained whenever fresh market data changes the model fingerprint; otherwise the cached model is reused. **It is not investment advice.**
-
-CLI:
-
-```bash
-python manage.py train_model AAPL                 # LSTM, 7-day horizon
-python manage.py train_model TSLA --backend sklearn --days 14 --offline
-```
-
----
-
 ## Pages & API
 
 | Page | URL | Purpose |
 |---|---|---|
 | Overview | `/` | Quote, stats, price/volume charts, headlines, freshness badge |
 | Compare | `/compare/` | Overlay two tickers (raw + indexed-to-100) |
-| AI Forecast | `/predict/` | Train/load model, forecast, metrics, signal |
 | Screener | `/stocks/` | Paginated ~8,200-symbol universe with live quotes |
 | Details | `/details/AAPL/` | Company info, full chart, news |
 | API Docs | `/api-docs/` | Endpoint reference |
@@ -138,13 +108,10 @@ python manage.py train_model TSLA --backend sklearn --days 14 --offline
 curl http://localhost:8000/api/health/
 curl "http://localhost:8000/api/history/?symbol=AAPL&start=2025-01-01"
 curl "http://localhost:8000/api/quote/?symbol=AAPL"
-curl -X POST http://localhost:8000/api/predict/ \
-     -H 'Content-Type: application/json' \
-     -d '{"symbol":"AAPL","days":7}'
 curl -X POST http://localhost:8000/api/refresh/ -H 'Content-Type: application/json' -d '{}'
 ```
 
-CSV export: `/download/0/?symbol=AAPL` (history), `/download/3/?symbol=AAPL&days=7` (forecast), `/download/4/` (screener).
+CSV export: `/download/0/?symbol=AAPL` (history), `/download/4/` (screener).
 
 ---
 
@@ -160,13 +127,13 @@ Tests use synthetic data in a temporary directory and make **no network calls**.
 
 ## Production deployment
 
-The repo ships with WhiteNoise, so Django serves its own compressed static
-files behind gunicorn. No separate nginx static volume is required.
+This branch ships with WhiteNoise, so Django serves its own compressed static
+files behind gunicorn. For the full production stack, use the `full` branch.
 
 ### Option 1 — VPS + Docker Compose + automatic HTTPS (recommended)
 
-You need an Ubuntu 22.04/24.04 VPS (2 GB RAM or more is comfortable for
-TensorFlow), a domain name, and ports 80/443 open.
+You need an Ubuntu 22.04/24.04 VPS (1 GB RAM or more), a domain name, and
+ports 80/443 open.
 
 1. **Point DNS at the server.** Create an `A` record for `stocksight.example.com`
    (and optionally `www`) pointing to the VPS public IP. Wait for DNS to resolve:
@@ -222,7 +189,7 @@ TensorFlow), a domain name, and ports 80/443 open.
    docker compose -f docker-compose.prod.yml up -d --build
    ```
 
-   The first build installs TensorFlow and can take several minutes. Caddy
+   The first build installs Python packages and can take a few minutes. Caddy
    obtains a Let's Encrypt certificate automatically once DNS is live.
 
    > Using Cloudflare? Set the DNS record to **DNS only** (grey cloud) until
@@ -245,8 +212,8 @@ TensorFlow), a domain name, and ports 80/443 open.
    docker compose -f docker-compose.prod.yml up -d --build
    ```
 
-   Price history, trained models and the SQLite database live in named Docker
-   volumes (`market_data`, `model_data`), so rebuilding containers keeps them.
+   Price history, news cache and the SQLite database live in named Docker
+   volumes, so rebuilding containers keeps them.
 
 Useful commands:
 
@@ -270,32 +237,29 @@ The included `Dockerfile` works on container-based hosts:
 
 - **Start command:** `gunicorn StockPricePrediction.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300`
 - **Environment:** `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS=<your-host>`, `SECURE_SSL_REDIRECT=False` (the platform terminates TLS).
-- **Persistent disk:** mount one at `/app/data` (price/news cache) and one at `/app/models` (trained models). Set `DB_NAME=/app/data/db.sqlite3` so SQLite also survives restarts; keep a single instance or switch to Postgres.
-- Choose at least 2 GB RAM; the TensorFlow image is large and the free tiers are usually too small.
+- **Persistent disk:** mount one at `/app/data` so the price/news cache and SQLite survive restarts. Keep a single instance or switch to Postgres.
+- A 1 GB instance is enough for this lightweight build.
 
-### Option 2b — Render free tier (lightweight build)
+### Option 2b — Render free tier (this branch)
 
-A reduced-size build is included for Render's free 512 MB web service. It uses
-`Dockerfile.render`, `requirements-render.txt` and `render.yaml`, and forces the
-built-in NumPy linear-regression forecast backend (`STOCKSIGHT_LITE=1`). TensorFlow,
-Keras, scikit-learn and SciPy are **not** installed in this build.
+`main` is the lightweight build for Render's free 512 MB web service. It uses
+`Dockerfile.render` and `render.yaml`. TensorFlow, Keras, scikit-learn and SciPy
+are not installed, and the AI Forecast feature is not present on this branch.
 
 Deploy with the Render Blueprint:
 
-1. Push this repo to GitHub and sign in to Render with GitHub (no card needed for the free plan).
-2. **New → Blueprint → select the repository** → Render reads `render.yaml`.
+1. Sign in to Render with GitHub (no card needed for the free plan).
+2. **New → Blueprint → select `Ansari-Maaz/StockSight`**, branch `main`.
 3. Deploy. The URL will be `https://stocksight.onrender.com` (or similar).
 
-Trade-offs compared with the full build:
+Limitations of the free tier:
 
-- Forecasts use a NumPy linear model instead of the LSTM/gradient-boosting models.
-- No persistent disk: the market CSVs ship in the repo; price/news caches and model
-  files are rebuilt in memory after each restart.
-- No background refresher container: market data refreshes on demand when a page is loaded.
+- No persistent disk: caches reset on restart; the bundled market CSVs are the starting point.
+- No background refresher container: market data refreshes when a page is opened.
 - Free web services sleep after ~15 minutes idle; the first request after waking takes about a minute.
 - Keep a single instance (`--workers 1`) to stay inside 512 MB.
 
-For the full app, use the VPS or Oracle Always Free deployment above.
+For the full app with AI Forecast, use the `full` branch.
 
 ### Option 3 — Manual gunicorn (existing server with nginx/Caddy)
 
@@ -312,4 +276,4 @@ serves `/static/` directly from Django. Keep `refresh_data` running from cron
 
 Environment variables (all optional for local dev): `DOMAIN`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `SECURE_SSL_REDIRECT`, `CSRF_TRUSTED_ORIGINS`, `DB_*`, `MARKET_DATA_DIR`, `MODEL_DIR`, `MARKET_UNIVERSE_CSV`, `MARKET_REFRESH_TTL_HOURS`, `NEWS_DIR`, `NEWS_TTL_HOURS`, `FINNHUB_API_KEY`, `NEWS_API_KEY`, `LOG_LEVEL`.
 
-> **Disclaimer:** forecasts are a demonstration of the ML pipeline, not financial advice.
+> **Disclaimer:** market data may be delayed. Nothing here is investment advice.

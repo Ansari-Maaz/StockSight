@@ -114,7 +114,6 @@ MARKET_UNIVERSE_CSV = Path(env("MARKET_UNIVERSE_CSV", str(BASE_DIR / "all_stocks
 MARKET_REFRESH_TTL_HOURS = env("MARKET_REFRESH_TTL_HOURS", "1", float)
 NEWS_DIR = Path(env("NEWS_DIR", str(BASE_DIR / "data" / "news")))
 NEWS_TTL_HOURS = env("NEWS_TTL_HOURS", "6", float)
-MODEL_DIR = Path(env("MODEL_DIR", str(BASE_DIR / "models")))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

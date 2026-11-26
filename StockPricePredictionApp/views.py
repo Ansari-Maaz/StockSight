@@ -1,4 +1,4 @@
-"""Thin views: all market / ML work is delegated to ``services``."""
+"""Thin views: all market work is delegated to ``services``."""
 
 from __future__ import annotations
 
@@ -20,7 +20,6 @@ from .services import data as data_service
 from .services import indicators as indicator_service
 from .services import market as market_service
 from .services import news as news_service
-from .services import predictor
 from .services import sentiment as sentiment_service
 
 logger = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ def landing(request):
         "name": getattr(settings, "APP_NAME", "StockSight"),
         "applicationCategory": "FinanceApplication",
         "operatingSystem": "Web",
-        "description": "Daily stock news, honest AI forecasts, side-by-side comparison and a local-first market screener. No signup required.",
+        "description": "Daily stock news, side-by-side comparison and a local-first market screener. No signup required.",
         "url": canonical_url,
         "image": og_image,
         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
@@ -247,62 +246,6 @@ def compare(request):
     return render(request, "compare.html", context)
 
 
-def predict_view(request):
-    """Forecast page. Training only happens on POST so GET stays instant."""
-    symbol = ""
-    days = 7
-    result = None
-    error = None
-    if request.method == "POST":
-        raw_symbol = request.POST.get("company1") or ""
-        symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""
-        try:
-            days = int(request.POST.get("days") or 7)
-        except (TypeError, ValueError):
-            days = 7
-        if not symbol:
-            error = "Enter a stock symbol to run a forecast."
-        else:
-            try:
-                result = predictor.predict(symbol, days=days).as_dict()
-                projections = result.get("predictions") or []
-                if projections:
-                    closes = result.get("history_close") or []
-                    base = closes[-1] if closes else projections[0]
-                    if base:
-                        result["projected_change_pct"] = round(
-                            (projections[-1] / base - 1) * 100, 2)
-                        result["projected_low"] = round(min(projections), 2)
-                        result["projected_high"] = round(max(projections), 2)
-                        result["projected_last"] = round(projections[-1], 2)
-            except Exception as exc:
-                logger.exception("Prediction failed for %s", symbol)
-                error = str(exc)
-
-    cached = []
-    for path in predictor.MODEL_DIR.glob("*.meta.json") if predictor.MODEL_DIR.exists() else []:
-        try:
-            meta = json.loads(path.read_text())
-            cached.append({
-                "symbol": meta.get("symbol"),
-                "backend": meta.get("backend"),
-                "trained_at": (meta.get("trained_at") or "")[:16].replace("T", " "),
-            })
-        except Exception:
-            pass
-
-    return render(request, "predict.html", {
-        "nav_active": "predict",
-        "symbol": symbol,
-        "days": days,
-        "result": result,
-        "has_result": result is not None,
-        "error": error,
-        "cached_models": sorted(cached, key=lambda r: r["symbol"] or ""),
-        "max_days": 90,
-    })
-
-
 def all_stocks(request):
     search = request.GET.get("search") or request.POST.get("search") or ""
     try:
@@ -322,7 +265,7 @@ def _symbol_options() -> list[str]:
 
 
 def alerts(request):
-    """Client-side price/forecast alerts with browser notifications."""
+    """Client-side price alerts with browser notifications."""
     return render(request, "alerts.html", {
         "nav_active": "alerts",
         "watchlist": WATCHLIST,
@@ -356,7 +299,7 @@ def details(request, id):
 
 
 def download(request, id):
-    """CSV export: history (0/1/2), predictions (3), or screener (4)."""
+    """CSV export: history (0/1/2) or screener (3/4)."""
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="stocksight_export.csv"'
     writer = csv.writer(response)
@@ -369,14 +312,7 @@ def download(request, id):
             writer.writerow([timestamp.strftime("%Y-%m-%d")] +
                             [round(float(row[c]), 4) for c in data_service.REQUIRED_COLUMNS])
     elif id in {"3", "prediction"}:
-        days = int(request.GET.get("days") or 7)
-        try:
-            result = predictor.predict(symbol, days=days, refresh_data=False)
-        except Exception as exc:
-            writer.writerow(["error", str(exc)])
-        else:
-            writer.writerow(["Date", "Prediction"])
-            writer.writerows(zip(result.dates, [round(p, 2) for p in result.predictions]))
+        writer.writerow(["error", "This export is not available in the lightweight build."])
     else:
         screener = market_service.screener(page=1, per_page=500)
         writer.writerow(["Symbol", "Name", "Close", "Change", "% Change", "Country", "Industry", "Date"])
@@ -421,22 +357,6 @@ def api_quotes(request):
     return JsonResponse({
         "quotes": [data_service.get_quote(symbol, refresh="never") for symbol in symbols if symbol]
     })
-
-
-@csrf_exempt
-@require_POST
-def api_predict(request):
-    body = _json_body(request)
-    try:
-        result = predictor.predict(
-            body.get("symbol") or DEFAULT_SYMBOL,
-            days=int(body.get("days") or 7),
-            backend=body.get("backend") or "auto",
-        ).as_dict()
-        return JsonResponse({"ok": True, "result": result})
-    except Exception as exc:
-        logger.exception("API prediction failed")
-        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
 
 
 @require_GET
@@ -493,7 +413,7 @@ def robots_txt(request):
 def sitemap_xml(request):
     base = request.build_absolute_uri("/").rstrip("/")
     paths = [
-        "/", "/dashboard/", "/compare/", "/predict/", "/stocks/",
+        "/", "/dashboard/", "/compare/", "/stocks/",
         "/alerts/", "/api-docs/",
     ]
     for row in data_service.status()["symbols"]:

@@ -3,7 +3,7 @@
 
 {% block title %}Alerts{% endblock %}
 {% block title_crumb %}ALERTS{% endblock %}
-{% block heading %}Price & Forecast Alerts{% endblock %}
+{% block heading %}Price Alerts{% endblock %}
 
 {% block content %}
 
@@ -17,7 +17,7 @@
     <div class="panel-head">
       <div>
         <h2 class="panel-title">Create an alert</h2>
-        <p class="panel-sub">Price alerts use cached quotes. Forecast alerts train/reuse the local model on demand.</p>
+        <p class="panel-sub">Alerts use cached quotes and are evaluated in your browser.</p>
       </div>
       <span class="badge badge-neutral">BROWSER NOTIFICATIONS</span>
     </div>
@@ -37,8 +37,6 @@
           <option value="price_below">Price falls below</option>
           <option value="change_above">Daily gain above %</option>
           <option value="change_below">Daily drop below %</option>
-          <option value="forecast_above">7-day forecast above</option>
-          <option value="forecast_below">7-day forecast below</option>
         </select>
       </div>
       <div class="field">
@@ -50,7 +48,7 @@
       </div>
     </form>
     <p class="note-text muted" id="thresholdHint">
-      Enter a price for price/forecast alerts, or a percentage for daily-change alerts.
+      Enter a price for price alerts, or a percentage for daily-change alerts.
     </p>
   </section>
 
@@ -63,7 +61,6 @@
       </div>
       <div class="head-actions">
         <button type="button" class="btn btn-ghost" id="notifyBtn">Enable notifications</button>
-        <button type="button" class="btn btn-ghost" id="checkForecastBtn">Check forecasts</button>
         <button type="button" class="btn btn-primary" id="checkBtn">Check now</button>
       </div>
     </div>
@@ -81,8 +78,7 @@
       </table>
     </div>
     <p class="note-text muted">
-      Price alerts refresh when this page loads or when you press <strong>Check now</strong>. Forecast alerts
-      only run when you press <strong>Check forecasts</strong>, because training can take a few seconds.
+      Alerts refresh when this page loads or when you press <strong>Check now</strong>.
       Notifications appear only while this page is open and notification permission is granted.
     </p>
   </section>

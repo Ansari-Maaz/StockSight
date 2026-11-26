@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" id="themeColor" content="#070b18">
-  <meta name="description" content="StockSight — daily stock news, honest AI forecasts, side-by-side comparison and a market screener. No signup required.">
+  <meta name="description" content="StockSight — daily stock news, side-by-side comparison and a market screener. No signup required.">
   <title>StockSight — See the market clearly</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
   <link rel="canonical" href="{{ canonical_url }}">
   <meta property="og:title" content="StockSight — See the market clearly">
-  <meta property="og:description" content="Daily stock news, honest AI forecasts and transparent metrics. No signup required.">
+  <meta property="og:description" content="Daily stock news and transparent market data. No signup required.">
   <meta property="og:image" content="{{ og_image }}">
   <meta property="og:url" content="{{ canonical_url }}">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="StockSight — See the market clearly">
-  <meta name="twitter:description" content="Daily stock news, honest AI forecasts and transparent metrics. No signup required.">
+  <meta name="twitter:description" content="Daily stock news and transparent market data. No signup required.">
   <meta name="twitter:image" content="{{ og_image }}">
   <script type="application/ld+json">{{ seo_json|safe }}</script>
   <link rel="stylesheet" href="{% static 'css/landing.css' %}">
@@ -61,7 +61,6 @@
     <nav class="nav-links" id="navLinks" aria-label="Landing navigation">
       <a href="#features">Features</a>
       <a href="#compare">Compare</a>
-      <a href="#forecast">AI Forecast</a>
       <a href="#how">How it works</a>
       <a href="#data">Data</a>
       <a href="#faq">FAQ</a>
@@ -100,16 +99,15 @@
           <span class="gradient-text">clearly.</span>
         </h1>
         <p class="lead reveal" style="--delay:170ms">
-          StockSight turns raw price history, daily headlines and machine-learning
-          forecasts into one calm, readable workspace. Search any ticker and get
-          context — not noise.
+          StockSight turns raw price history and daily headlines into one calm,
+          readable workspace. Search any ticker and get context — not noise.
         </p>
         <div class="hero-actions reveal" style="--delay:240ms">
           <a class="btn btn-primary btn-lg" href="{% url 'home' %}">
             Explore the dashboard
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
           </a>
-          <a class="btn btn-ghost btn-lg" href="#forecast">How AI Forecast works</a>
+          <a class="btn btn-ghost btn-lg" href="#data">See data freshness</a>
         </div>
         <div class="hero-trust reveal" style="--delay:310ms">
           <span><i class="trust-dot"></i> No account needed</span>
@@ -228,8 +226,8 @@
         <span>symbols in the local cache</span>
       </div>
       <div class="stat reveal" style="--delay:80ms">
-        <strong data-count="90" data-suffix=" days">0</strong>
-        <span>forecast horizon</span>
+        <strong data-count="10" data-suffix=" yrs">0</strong>
+        <span>years of price history</span>
       </div>
       <div class="stat reveal" style="--delay:160ms">
         <strong data-count="6" data-suffix="h">0</strong>
@@ -246,7 +244,7 @@
       <div class="section-head reveal">
         <span class="section-kicker">WHAT'S INSIDE</span>
         <h2>Everything you need to read a stock — in one place.</h2>
-        <p>Six focused tools, built to work together. No clutter, no account, no paywall.</p>
+        <p>Five focused tools, built to work together. No clutter, no account, no paywall.</p>
       </div>
 
       <div class="feature-grid">
@@ -257,15 +255,6 @@
           <h3>Daily stock news</h3>
           <p>Headlines from Yahoo Finance, Google News and yfinance, filtered to the ticker you're reading and refreshed on a schedule.</p>
           <span class="feature-tag">Yahoo · Google · yfinance</span>
-        </article>
-
-        <article class="feature-card feature-highlight reveal" style="--delay:100ms">
-          <span class="feature-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 8 11l4 3 6-8 3 3"/><path d="M3 21h18"/><circle cx="18" cy="6" r="1.5"/></svg>
-          </span>
-          <h3>AI price forecasts</h3>
-          <p>An LSTM model — with scikit-learn and NumPy fallbacks — projects 1–90 trading days and reports its own accuracy.</p>
-          <span class="feature-tag">1–90 day horizon</span>
         </article>
 
         <article class="feature-card reveal" style="--delay:160ms">
@@ -300,7 +289,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4"/><path d="m16 8 4 4-4 4"/><path d="m13 5-2 14"/></svg>
           </span>
           <h3>Open JSON API</h3>
-          <p>History, quotes, predictions, search and health endpoints. The same data the UI uses, available without an API key.</p>
+          <p>History, quotes, search and health endpoints. The same data the UI uses, available without an API key.</p>
           <span class="feature-tag">GET /api/history</span>
         </article>
       </div>
@@ -368,92 +357,6 @@
       </div>
     </section>
 
-    <!-- ── AI Forecast ──────────────────────────────────────────── -->
-    <section class="section forecast-section" id="forecast">
-      <div class="section-head reveal">
-        <span class="section-kicker">AI FORECAST, EXPLAINED</span>
-        <h2>A second opinion that shows its report card.</h2>
-        <p>Not a crystal ball. StockSight trains on one stock's own history, tests itself on unseen data, and tells you when to ignore it.</p>
-      </div>
-
-      <div class="forecast-layout">
-        <div class="forecast-copy">
-          <div class="forecast-block reveal">
-            <h3>What it does</h3>
-            <p>It learns patterns from daily closing prices, then projects the next 1–90 trading days. The BUY / SELL / HOLD signal summarises the projected direction; the metrics tell you how much weight it deserves.</p>
-          </div>
-
-          <div class="forecast-steps">
-            <div class="fstep reveal" style="--delay:60ms">
-              <span class="fstep-num">01</span>
-              <div><strong>Pull the history</strong><p>Up to 10 years of daily OHLCV, refreshed from the local cache.</p></div>
-            </div>
-            <div class="fstep reveal" style="--delay:120ms">
-              <span class="fstep-num">02</span>
-              <div><strong>Train locally</strong><p>LSTM first, then Gradient Boosting or NumPy if TensorFlow isn't available.</p></div>
-            </div>
-            <div class="fstep reveal" style="--delay:180ms">
-              <span class="fstep-num">03</span>
-              <div><strong>Validate honestly</strong><p>A chronological 90/10 split keeps the test set unseen — no look-ahead leakage.</p></div>
-            </div>
-            <div class="fstep reveal" style="--delay:240ms">
-              <span class="fstep-num">04</span>
-              <div><strong>Project &amp; explain</strong><p>Day-by-day prices, a range, a signal and accuracy metrics in plain language.</p></div>
-            </div>
-          </div>
-
-          <div class="forecast-actions reveal">
-            <a class="btn btn-primary" href="{% url 'predict' %}">Run a forecast</a>
-            <a class="text-link" href="#how">See how to use it <span>→</span></a>
-          </div>
-        </div>
-
-        <div class="forecast-card reveal" style="--delay:140ms">
-          <span class="example-tag">ILLUSTRATIVE OUTPUT</span>
-          <div class="fc-head">
-            <div>
-              <span class="mono muted">AAPL · 7-DAY HORIZON</span>
-              <h3>AI SIGNAL</h3>
-            </div>
-            <span class="signal-badge">BUY</span>
-          </div>
-          <div class="fc-confidence">
-            <span>Direction accuracy</span>
-            <strong>58%</strong>
-          </div>
-          <div class="fc-bar"><span style="width:58%"></span></div>
-          <div class="fc-grid">
-            <div><span>Projected move</span><strong class="up">+1.8%</strong></div>
-            <div><span>Projected range</span><strong>$352–$360</strong></div>
-            <div><span>RMSE vs naive</span><strong>−12.4%</strong></div>
-            <div><span>Data through</span><strong>{{ data_through }}</strong></div>
-          </div>
-          <div class="fc-note">
-            <span>◎</span>
-            <p>Direction accuracy near 50% means the model is no better than a coin flip. Treat that as a signal to ignore it.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="use-grid">
-        <div class="use-card reveal" style="--delay:60ms">
-          <span class="use-num">01</span>
-          <h3>Sanity-check a hunch</h3>
-          <p>See whether years of price history actually support the direction you believe in.</p>
-        </div>
-        <div class="use-card reveal" style="--delay:130ms">
-          <span class="use-num">02</span>
-          <h3>Plan scenarios</h3>
-          <p>Use the projected range to stage entries, set alerts, or decide when to wait.</p>
-        </div>
-        <div class="use-card reveal" style="--delay:200ms">
-          <span class="use-num">03</span>
-          <h3>Know when to ignore it</h3>
-          <p>If holdout accuracy is near 50%, the model is guessing. The page says so.</p>
-        </div>
-      </div>
-    </section>
-
     <!-- ── How it works ─────────────────────────────────────────── -->
     <section class="section" id="how">
       <div class="section-head reveal">
@@ -477,9 +380,9 @@
         </div>
         <div class="how-step reveal" style="--delay:200ms">
           <span class="how-num">3</span>
-          <h3>Run a forecast</h3>
-          <p>Choose a 1–90 day horizon. Get a projected path, a range, a signal and the accuracy metrics behind it.</p>
-          <span class="how-visual mono">✦ BUY · 58%</span>
+          <h3>Stay ahead</h3>
+          <p>Save symbols to your watchlist and set price alerts right in your browser — no account needed.</p>
+          <span class="how-visual mono">★ AAPL · ALERT SET</span>
         </div>
       </div>
     </section>
@@ -524,7 +427,6 @@
             </div>
             <span class="radar-chip chip-prices">Prices</span>
             <span class="radar-chip chip-news">News</span>
-            <span class="radar-chip chip-forecast">Forecast</span>
             <span class="radar-chip chip-cache">Cache</span>
           </div>
         </div>
@@ -547,17 +449,13 @@
           <summary>Is the data live?<span class="faq-plus" aria-hidden="true"></span></summary>
           <p>Prices are daily end-of-day bars, refreshed after the next expected US market close. It is not an intraday streaming feed. News refreshes on a separate six-hour cycle.</p>
         </details>
-        <details class="faq-item reveal" style="--delay:120ms">
-          <summary>How accurate is AI Forecast?<span class="faq-plus" aria-hidden="true"></span></summary>
-          <p>Each result shows direction accuracy on a chronological holdout, RMSE, MAPE and a naive-baseline comparison. If direction accuracy is near 50%, the model is no better than a coin flip — ignore it. It is a statistical estimate, not investment advice.</p>
-        </details>
         <details class="faq-item reveal" style="--delay:180ms">
           <summary>What happens if the data provider is down?<span class="faq-plus" aria-hidden="true"></span></summary>
           <p>The cached file is served and clearly marked STALE. StockSight retries after a short cooldown; it never fabricates a price or headline.</p>
         </details>
         <details class="faq-item reveal" style="--delay:240ms">
           <summary>Can I use the API?<span class="faq-plus" aria-hidden="true"></span></summary>
-          <p>Yes. History, quote, prediction, search and health endpoints are available without a key. See the API Docs page inside the dashboard.</p>
+          <p>Yes. History, quote, search and health endpoints are available without a key. See the API Docs page inside the dashboard.</p>
         </details>
       </div>
     </section>
@@ -568,7 +466,7 @@
         <div class="cta-glow" aria-hidden="true"></div>
         <span class="section-kicker">READY WHEN YOU ARE</span>
         <h2>Your next market read is one search away.</h2>
-        <p>Open the dashboard, pick a ticker and see the full picture — price history, daily news and an honest forecast.</p>
+        <p>Open the dashboard, pick a ticker and see the full picture — price history, daily news and market context.</p>
         <a class="btn btn-primary btn-lg" href="{% url 'home' %}">
           Open the dashboard
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
@@ -589,7 +487,6 @@
     <div class="footer-links">
       <a href="#features">Features</a>
       <a href="#compare">Compare</a>
-      <a href="#forecast">AI Forecast</a>
       <a href="#data">Data freshness</a>
       <a href="{% url 'api_docs' %}">API Docs</a>
       <a href="{% url 'home' %}">Dashboard</a>

@@ -7,4 +7,3 @@ PATH=/usr/local/bin:/usr/bin:/bin
 30 18 * * 1-5 cd /path/to/StockSight && /path/to/StockSight/.venv/bin/python manage.py refresh_data >> /var/log/stocksight-refresh.log 2>&1
 
 # Rebuild models once a week for the default watchlist (optional)
-0 19 * * 0 cd /path/to/StockSight && /path/to/StockSight/.venv/bin/python manage.py train_model AAPL --offline >> /var/log/stocksight-train.log 2>&1
