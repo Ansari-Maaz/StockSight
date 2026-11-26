@@ -160,14 +160,132 @@ Tests use synthetic data in a temporary directory and make **no network calls**.
 
 ## Production deployment
 
+The repo ships with WhiteNoise, so Django serves its own compressed static
+files behind gunicorn. No separate nginx static volume is required.
+
+### Option 1 — VPS + Docker Compose + automatic HTTPS (recommended)
+
+You need an Ubuntu 22.04/24.04 VPS (2 GB RAM or more is comfortable for
+TensorFlow), a domain name, and ports 80/443 open.
+
+1. **Point DNS at the server.** Create an `A` record for `stocksight.example.com`
+   (and optionally `www`) pointing to the VPS public IP. Wait for DNS to resolve:
+
+   ```bash
+   getent hosts stocksight.example.com
+   ```
+
+2. **Install Docker** on the VPS:
+
+   ```bash
+   curl -fsSL https://get.docker.com | sudo sh
+   sudo usermod -aG docker "$USER"
+   newgrp docker
+   ```
+
+3. **Open the firewall** (if `ufw` is enabled) and in your provider's
+   security group / cloud firewall:
+
+   ```bash
+   sudo ufw allow OpenSSH
+   sudo ufw allow 80/tcp
+   sudo ufw allow 443/tcp
+   sudo ufw enable
+   ```
+
+   If nginx or Apache is already using ports 80/443, stop it first
+   (`sudo systemctl stop nginx` or `sudo systemctl stop apache2`).
+
+4. **Clone the project and create the environment file:**
+
+   ```bash
+   git clone https://github.com/Ansari-Maaz/StockSight.git
+   cd StockSight
+   cp .env.example .env
+   python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+   ```
+
+   Edit `.env` and set at least:
+
+   ```env
+   DOMAIN=stocksight.example.com
+   DJANGO_SECRET_KEY=<the generated key>
+   DJANGO_DEBUG=False
+   DJANGO_ALLOWED_HOSTS=stocksight.example.com,www.stocksight.example.com
+   ```
+
+   `DOMAIN` must be the bare hostname, without `https://` or a trailing slash.
+
+5. **Build and start the stack:**
+
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+   The first build installs TensorFlow and can take several minutes. Caddy
+   obtains a Let's Encrypt certificate automatically once DNS is live.
+
+   > Using Cloudflare? Set the DNS record to **DNS only** (grey cloud) until
+   > Caddy has issued the certificate, then you can proxy it again.
+
+6. **Verify:**
+
+   ```bash
+   docker compose -f docker-compose.prod.yml ps
+   docker compose -f docker-compose.prod.yml logs -f caddy
+   curl -I https://stocksight.example.com/
+   ```
+
+   The site should return `200 OK`, and `http://` should redirect to `https://`.
+
+7. **Update a deployment:**
+
+   ```bash
+   git pull
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+   Price history, trained models and the SQLite database live in named Docker
+   volumes (`market_data`, `model_data`), so rebuilding containers keeps them.
+
+Useful commands:
+
 ```bash
-cp .env.example .env            # set a real SECRET_KEY, ALLOWED_HOSTS, DEBUG=False
-python manage.py collectstatic --noinput
-gunicorn StockPricePrediction.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 300
+docker compose -f docker-compose.prod.yml logs -f web
+docker compose -f docker-compose.prod.yml restart web
+docker compose -f docker-compose.prod.yml down          # stop, keep data
+docker compose -f docker-compose.prod.yml down -v       # stop and delete data
 ```
 
-Or `docker compose up --build -d`. Serve `staticfiles/` with nginx in front of gunicorn. For Postgres, set `DB_ENGINE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` (install `psycopg2-binary` when using Postgres).
+If something fails:
 
-Environment variables (all optional for local dev): `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DB_*`, `MARKET_DATA_DIR`, `MODEL_DIR`, `MARKET_UNIVERSE_CSV`, `MARKET_REFRESH_TTL_HOURS`, `NEWS_DIR`, `NEWS_TTL_HOURS`, `FINNHUB_API_KEY`, `NEWS_API_KEY`, `LOG_LEVEL`.
+- **`400 Bad Request`** — `DJANGO_ALLOWED_HOSTS` doesn't include the hostname you opened.
+- **Certificate not issued** — confirm DNS points at the server and ports 80/443 are open; check `docker compose -f docker-compose.prod.yml logs caddy`.
+- **`DisallowedHost` in logs** — add the exact hostname (without `https://`) to `DJANGO_ALLOWED_HOSTS`.
+- **Old CSS/JS after an update** — rebuild with `--build`; the service worker also caches the shell, so hard-refresh once.
+
+### Option 2 — PaaS (Render, Railway, Fly.io)
+
+The included `Dockerfile` works on container-based hosts:
+
+- **Start command:** `gunicorn StockPricePrediction.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 300`
+- **Environment:** `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS=<your-host>`, `SECURE_SSL_REDIRECT=False` (the platform terminates TLS).
+- **Persistent disk:** mount one at `/app/data` (price/news cache) and one at `/app/models` (trained models). Set `DB_NAME=/app/data/db.sqlite3` so SQLite also survives restarts; keep a single instance or switch to Postgres.
+- Choose at least 2 GB RAM; the TensorFlow image is large and the free tiers are usually too small.
+
+### Option 3 — Manual gunicorn (existing server with nginx/Caddy)
+
+```bash
+cp .env.example .env            # set SECRET_KEY, ALLOWED_HOSTS, DEBUG=False
+python manage.py migrate
+python manage.py collectstatic --noinput
+gunicorn StockPricePrediction.wsgi:application --bind 127.0.0.1:8000 --workers 2 --timeout 300
+```
+
+Put nginx/Caddy in front for TLS and proxy `/` to `127.0.0.1:8000`. WhiteNoise
+serves `/static/` directly from Django. Keep `refresh_data` running from cron
+(see `crontab.example`) or use the Compose `refresher` service.
+
+Environment variables (all optional for local dev): `DOMAIN`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `SECURE_SSL_REDIRECT`, `CSRF_TRUSTED_ORIGINS`, `DB_*`, `MARKET_DATA_DIR`, `MODEL_DIR`, `MARKET_UNIVERSE_CSV`, `MARKET_REFRESH_TTL_HOURS`, `NEWS_DIR`, `NEWS_TTL_HOURS`, `FINNHUB_API_KEY`, `NEWS_API_KEY`, `LOG_LEVEL`.
 
 > **Disclaimer:** forecasts are a demonstration of the ML pipeline, not financial advice.

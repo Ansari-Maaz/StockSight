@@ -1,0 +1,39 @@
+# Local development / VCS
+.git/
+.gitignore
+.venv/
+venv/
+.pip-cache/
+.pip-tmp/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local state
+.env
+.env.*
+!.env.example
+db.sqlite3
+*.sqlite3
+staticfiles/
+data/news/
+models/
+*.keras
+*.joblib
+checkpoint
+model.weights.h5
+data.csv
+Readme
+screenshot/
+
+# Legacy template assets, unused by the current templates
+static/assets/
+static/contact/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
