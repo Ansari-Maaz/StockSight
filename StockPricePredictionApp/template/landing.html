@@ -264,8 +264,8 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 8 11l4 3 6-8 3 3"/><path d="M3 21h18"/><circle cx="18" cy="6" r="1.5"/></svg>
           </span>
           <h3>AI price forecasts</h3>
-          <p>An LSTM model — with scikit-learn and NumPy fallbacks — projects 1–30 trading days and reports its own accuracy.</p>
-          <span class="feature-tag">1–30 day horizon</span>
+          <p>A model trained on each stock's own history projects 1–60 trading days and reports its own accuracy.</p>
+          <span class="feature-tag">1–60 day horizon</span>
         </article>
 
         <article class="feature-card reveal" style="--delay:160ms">
@@ -380,7 +380,7 @@
         <div class="forecast-copy">
           <div class="forecast-block reveal">
             <h3>What it does</h3>
-            <p>It learns patterns from daily closing prices, then projects the next 1–30 trading days. The BUY / SELL / HOLD signal summarises the projected direction; the metrics tell you how much weight it deserves.</p>
+            <p>It learns patterns from daily closing prices, then projects the next 1–60 trading days. The BUY / SELL / HOLD signal summarises the projected direction; the metrics tell you how much weight it deserves.</p>
           </div>
 
           <div class="forecast-steps">
@@ -390,7 +390,7 @@
             </div>
             <div class="fstep reveal" style="--delay:120ms">
               <span class="fstep-num">02</span>
-              <div><strong>Train locally</strong><p>LSTM first, then Gradient Boosting or NumPy if TensorFlow isn't available.</p></div>
+              <div><strong>Train locally</strong><p>NumPy regression on this build; the full branch adds an LSTM model.</p></div>
             </div>
             <div class="fstep reveal" style="--delay:180ms">
               <span class="fstep-num">03</span>
@@ -478,7 +478,7 @@
         <div class="how-step reveal" style="--delay:200ms">
           <span class="how-num">3</span>
           <h3>Run a forecast</h3>
-          <p>Choose a 1–30 day horizon. Get a projected path, a range, a signal and the accuracy metrics behind it.</p>
+          <p>Choose a 1–60 day horizon. Get a projected path, a range, a signal and the accuracy metrics behind it.</p>
           <span class="how-visual mono">✦ BUY · 58%</span>
         </div>
       </div>

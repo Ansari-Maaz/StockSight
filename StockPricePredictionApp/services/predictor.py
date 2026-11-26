@@ -61,7 +61,7 @@ MinMaxScaler = _NumpyMinMaxScaler
 LITE_MODE = os.environ.get("STOCKSIGHT_LITE", "").lower() in ("1", "true", "yes")
 
 SEQ_LEN = 60
-MAX_DAYS = 30   # lightweight build caps projections at one trading month
+MAX_DAYS = 60   # lightweight build cap; does not affect memory usage
 MODEL_VERSION = "v2-returns"   # bump when the training target/pipeline changes
 RETURN_SCALE = 20.0            # daily returns are small; amplify for stable training
 MODEL_DIR = Path(getattr(settings, "MODEL_DIR", Path(settings.BASE_DIR) / "models"))

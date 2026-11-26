@@ -1,8 +1,8 @@
 # StockSight
 
-> **This is the lightweight `main` branch** for Render's free tier. It includes a NumPy-based **1–30 day price forecast**. The complete project with the TensorFlow LSTM and full deployment stack is kept on the [`full`](https://github.com/Ansari-Maaz/StockSight/tree/full) branch.
+> **This is the lightweight `main` branch** for Render's free tier. It includes a NumPy-based **1–60 day price forecast**. The complete project with the TensorFlow LSTM and full deployment stack is kept on the [`full`](https://github.com/Ansari-Maaz/StockSight/tree/full) branch.
 
-A lightweight stock price prediction dashboard built with **Django 5**, **yfinance** and **pandas**. Forecasts use a NumPy regression trained on each stock's own history, with a 1–30 trading-day horizon. It runs from a local market-data cache and works offline when the data provider is unavailable.
+A lightweight stock price prediction dashboard built with **Django 5**, **yfinance** and **pandas**. Forecasts use a NumPy regression trained on each stock's own history, with a 1–60 trading-day horizon. It runs from a local market-data cache and works offline when the data provider is unavailable.
 
 > The old version depended on hard-coded credentials, hard-coded date ranges, global in-memory DataFrames, and retrained a model on **every** request. This version removes all of that.
 
@@ -15,7 +15,7 @@ A lightweight stock price prediction dashboard built with **Django 5**, **yfinan
 | **Local-first data** | One CSV per ticker in `data/market/`. Pages work with zero network access. |
 | **Always up to date** | Stale symbols are incrementally refreshed from yfinance as soon as a new trading session is expected, plus `refresh_data` for cron/Celery/Docker. |
 | **Daily stock news** | Yahoo Finance RSS + Google News RSS + yfinance, deduplicated and cached per symbol; optional Finnhub/NewsAPI keys. Shown on the overview, details and compare pages. |
-| **Forecasting** | NumPy regression trained **from your data**, with a 1–30 trading-day horizon. Models are cached by fingerprint and reused. Tensorflow/scikit-learn are not installed on this branch. |
+| **Forecasting** | NumPy regression trained **from your data**, with a 1–60 trading-day horizon. Models are cached by fingerprint and reused. Tensorflow/scikit-learn are not installed on this branch. |
 | **Honest metrics** | RMSE, MAE, MAPE, directional accuracy and a naive-baseline comparison on a chronological holdout. |
 | **No secret keys required** | All core features work without API keys; Finnhub/NewsAPI are optional upgrades. |
 | **Modern UI** | Animated public landing page at `/`, plus a responsive dashboard at `/dashboard/` with **light/dark theme toggle** (persisted in `localStorage`), a **collapsible sidebar**, locally bundled Plus Jakarta Sans + JetBrains Mono fonts, indigo/violet palette, semantic colour coding, and Chart.js charts that re-theme with the active mode (vendored locally). No CDN dependency at runtime. |
@@ -112,7 +112,7 @@ The overview, details and compare pages all read from this cache, so every visit
 
 ### What the AI Forecast means
 
-"AI Forecast" is a statistical projection, not a prediction with guaranteed outcomes. The model learns patterns from the stock's own historical daily closing prices and extrapolates the next 1–30 trading days. The **BUY / SELL / HOLD** signal compares the projected price path with the model's validated directional accuracy and the latest close. Metrics (RMSE, MAE, MAPE, directional accuracy, naive-baseline comparison) are computed on a chronological holdout so you can judge whether the model is actually useful. The forecast is automatically retrained whenever fresh market data changes the model fingerprint; otherwise the cached model is reused. **It is not investment advice.**
+"AI Forecast" is a statistical projection, not a prediction with guaranteed outcomes. The model learns patterns from the stock's own historical daily closing prices and extrapolates the next 1–60 trading days. The **BUY / SELL / HOLD** signal compares the projected price path with the model's validated directional accuracy and the latest close. Metrics (RMSE, MAE, MAPE, directional accuracy, naive-baseline comparison) are computed on a chronological holdout so you can judge whether the model is actually useful. The forecast is automatically retrained whenever fresh market data changes the model fingerprint; otherwise the cached model is reused. **It is not investment advice.**
 
 CLI:
 
@@ -277,7 +277,7 @@ The included `Dockerfile` works on container-based hosts:
 
 `main` is the lightweight build for Render's free 512 MB web service. It uses
 `Dockerfile.render` and `render.yaml`. TensorFlow, Keras, scikit-learn and SciPy
-are not installed; forecasts use the NumPy model with a 1–30 day horizon.
+are not installed; forecasts use the NumPy model with a 1–60 day horizon.
 
 Deploy with the Render Blueprint:
 

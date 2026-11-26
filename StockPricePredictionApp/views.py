@@ -299,7 +299,7 @@ def predict_view(request):
         "has_result": result is not None,
         "error": error,
         "cached_models": sorted(cached, key=lambda r: r["symbol"] or ""),
-        "max_days": 30,
+        "max_days": 60,
     })
 
 

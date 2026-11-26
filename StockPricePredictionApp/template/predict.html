@@ -6,7 +6,7 @@
 {% block heading %}AI Price Forecast{% endblock %}
 
 {% block content %}
-  {% with maxd=max_days|default:30 %}
+  {% with maxd=max_days|default:60 %}
 
   <!-- ── Forecast controls ───────────────────────────────────────── -->
   <section class="panel controls-panel">
@@ -196,7 +196,7 @@
         <div class="note-divider"></div>
         <p class="note-text muted">
           Forecasts are statistical estimates, not investment advice. Backend fallback order:
-          <span class="accent-text">LSTM → Gradient Boosting → NumPy</span>.
+          <span class="accent-text">NumPy regression</span>.
         </p>
       </div>
     </section>
@@ -208,7 +208,7 @@
       <h2>What is AI Forecast — and why use it?</h2>
       <p>
         It trains a model on the selected stock's own historical daily prices and projects the next
-        <strong>1–30 trading days</strong>. The BUY / SELL / HOLD signal summarises the projected direction,
+        <strong>1–60 trading days</strong>. The BUY / SELL / HOLD signal summarises the projected direction,
         while the accuracy metrics tell you how much weight to give it. It is a statistical second opinion —
         not investment advice or a guarantee.
       </p>
@@ -236,18 +236,8 @@
       <div class="backend-grid">
         <div class="backend-card">
           <span class="backend-num">01</span>
-          <strong>LSTM</strong>
-          <span>TensorFlow neural network for sequence learning (preferred).</span>
-        </div>
-        <div class="backend-card">
-          <span class="backend-num">02</span>
-          <strong>Gradient Boosting</strong>
-          <span>scikit-learn trees — fast fallback when TensorFlow is unavailable.</span>
-        </div>
-        <div class="backend-card">
-          <span class="backend-num">03</span>
           <strong>NumPy</strong>
-          <span>Lightweight regression fallback that always runs locally.</span>
+          <span>Lightweight regression trained locally from the stock's own history. The full branch also offers an LSTM model.</span>
         </div>
       </div>
     </section>
