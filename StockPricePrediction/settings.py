@@ -22,9 +22,18 @@ def env(key, default=None, cast=str):
         raise ImproperlyConfigured(f"Invalid value for {key}: {value}") from exc
 
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-dev-only-change-me")
 DEBUG = env("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
+SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-dev-only-change-me")
+if not DEBUG and (SECRET_KEY == "django-insecure-dev-only-change-me" or len(SECRET_KEY) < 32):
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set to a unique random value of at least 32 characters "
+        "when DEBUG is disabled."
+    )
 ALLOWED_HOSTS = [h for h in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
+if not DEBUG and "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "DJANGO_ALLOWED_HOSTS may not be '*' in production; list the exact hostnames."
+    )
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -38,6 +47,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "StockPricePrediction.security.SecurityHeadersMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -74,6 +84,17 @@ DATABASES = {
         "NAME": env("DB_NAME", str(BASE_DIR / "db.sqlite3")),
     }
 }
+
+# Rate-limit counter store. LocMem is per-process and sufficient for the
+# single-worker image; set REDIS_URL in Readme.md for multi-worker deployments.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "stocksight-ratelimits",
+        "OPTIONS": {"MAX_ENTRIES": 10000},
+    }
+}
+RATE_LIMIT_ENABLED = env("RATE_LIMIT_ENABLED", "True").lower() in ("1", "true", "yes")
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -134,16 +155,25 @@ if not DEBUG:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "redact": {"()": "StockPricePrediction.security.SensitiveDataFilter"},
+    },
     "formatters": {
         "standard": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
+        "structured": {"()": "StockPricePrediction.security.StructuredFormatter"},
     },
     "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "standard"},
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "structured",
+            "filters": ["redact"],
+        },
     },
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO")},
     "loggers": {
         "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
         "StockPricePredictionApp": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO"),
                                     "propagate": False},
+        "stocksight.security": {"handlers": ["console"], "level": "INFO", "propagate": False},
     },
 }

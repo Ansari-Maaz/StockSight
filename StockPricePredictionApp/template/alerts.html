@@ -89,4 +89,4 @@
 
 {% endblock %}
 
-{% block scripts %}<script src="{% static 'js/alerts.js' %}"></script>{% endblock %}
+{% block scripts %}<script nonce="{{ csp_nonce }}" src="{% static 'js/alerts.js' %}"></script>{% endblock %}

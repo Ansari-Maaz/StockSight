@@ -281,7 +281,7 @@
 {% endblock %}
 
 {% block chart_data %}
-  <script>
+  <script nonce="{{ csp_nonce }}">
     (function () {
       var input = document.getElementById('company1');
       var list = document.getElementById('predictSymbols');
@@ -315,7 +315,7 @@
 
   {% if has_result %}
     {{ result|json_script:"mm-forecast" }}
-    <script>
+    <script nonce="{{ csp_nonce }}">
       (function () {
         var el = document.getElementById('mm-forecast');
         if (!el) return;

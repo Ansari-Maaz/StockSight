@@ -7,7 +7,7 @@
   <title>Something went wrong · StockSight</title>
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'css/landing.css' %}">
-  <script>
+  <script nonce="{{ csp_nonce }}">
     (function () {
       try {
         var t = localStorage.getItem('mm-theme');
@@ -18,7 +18,7 @@
       } catch (e) { document.documentElement.dataset.theme = 'dark'; }
     })();
   </script>
-  <style>
+  <style nonce="{{ csp_nonce }}">
     .error-page { min-height: 100vh; display: grid; place-items: center; }
     .error-wrap { position: relative; z-index: 2; width: min(560px, calc(100% - 32px)); padding: 60px 20px; text-align: center; }
     .error-wrap .brand { justify-content: center; margin-bottom: 38px; }

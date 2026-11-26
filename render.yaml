@@ -16,10 +16,12 @@ services:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_ALLOWED_HOSTS
-        value: "*"
+        value: "stocksight.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com"
       - key: SECURE_SSL_REDIRECT
-        value: "False"
+        value: "True"
       - key: STOCKSIGHT_LITE
         value: "1"
+      - key: RATE_LIMIT_ENABLED
+        value: "True"

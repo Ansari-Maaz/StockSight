@@ -310,4 +310,87 @@ serves `/static/` directly from Django. Keep `refresh_data` running from cron
 
 Environment variables (all optional for local dev): `DOMAIN`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `SECURE_SSL_REDIRECT`, `CSRF_TRUSTED_ORIGINS`, `DB_*`, `MARKET_DATA_DIR`, `MODEL_DIR`, `MARKET_UNIVERSE_CSV`, `MARKET_REFRESH_TTL_HOURS`, `NEWS_DIR`, `NEWS_TTL_HOURS`, `FINNHUB_API_KEY`, `NEWS_API_KEY`, `LOG_LEVEL`.
 
+## Security hardening
+
+This is an intentionally **account-free** application: no passwords, JWTs,
+email verification, sessions, user-owned records or admin users exist. The
+authentication/authorization controls below are therefore not applicable; all
+other controls are enforced in code.
+
+### Controls implemented
+
+| Control | Implementation |
+|---|---|
+| Input validation | `StockPricePredictionApp/validation.py` — strict allowlists for symbols, dates, integers, search strings, download IDs and symbol lists. Every view and API rejects invalid input with `400 Bad Request`. |
+| Injection / ReDoS | `services/market.py` uses `str.contains(..., regex=False)` for both search paths. All filesystem paths are sanitised in `services/data.py`; lock files use the same sanitised stem. |
+| Rate limiting | `StockPricePrediction/security.py` — per-IP quotas: 20/min for forecast and refresh, 120–180/min for APIs, 180–300/min for pages. Exceeded requests receive `429` + `Retry-After`. |
+| CSRF | State-changing APIs require the Django CSRF token; JS sends `X-CSRFToken`. The alerts page uses `@ensure_csrf_cookie`. |
+| Security headers | `SecurityHeadersMiddleware` emits nonce-based CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `COOP`, `CORP` and HSTS on secure requests. Caddy adds the same at the edge. |
+| Secrets | `DJANGO_SECRET_KEY` must be ≥32 chars and cannot be the dev default when `DEBUG=False`. `DJANGO_ALLOWED_HOSTS` cannot be `*`. `.env` is gitignored. |
+| Attack surface | Django admin route and `static()` media serving removed from the URLconf. No file-upload endpoints exist. |
+| Logging | Structured JSON logs with a redaction filter for password/token/secret/api-key/cookie patterns; rate-limit denials are logged to `stocksight.security`. |
+
+### Secret injection (exact configuration)
+
+Generate a key:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+```
+
+**Render:** Dashboard → Environment → add `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS=stocksight.onrender.com`, `CSRF_TRUSTED_ORIGINS=https://stocksight.onrender.com`, `SECURE_SSL_REDIRECT=True`. Never put these values in the Dockerfile.
+
+**VPS / Docker Compose:** keep them in a root-only `.env` (`chmod 600 .env`) which is already gitignored, or use platform secrets:
+
+```yaml
+secrets:
+  django_secret:
+    file: ./secrets/django_secret.txt
+services:
+  web:
+    secrets: [django_secret]
+```
+
+### Shared rate-limit cache (multi-worker)
+
+The single-worker image uses Django's in-process `LocMemCache`. If you scale to
+multiple workers, add `django-redis==5.4.0` and replace the `CACHES` block in
+`settings.py`:
+
+```python
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+```
+
+### Database isolation
+
+SQLite is a local file and is never network-exposed. For Postgres, keep the DB
+on a private network/VPC, never assign it a public IP, and require TLS:
+
+```env
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=stocksight
+DB_USER=stocksight
+DB_PASSWORD=<secret manager value>
+DB_HOST=db.internal
+DB_PORT=5432
+```
+
+### Secret scanning
+
+Run before every release:
+
+```bash
+git grep -nE '(api[_-]?key|secret|token|password|BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16})' -- ':!*.csv' ':!static/assets/*'
+git log -p --all | grep -iE 'password|secret|api[_-]?key' || true
+```
+
+If a key is found in history, rotate it immediately and purge history with
+`git filter-repo`. No first-party secret was found during this audit.
+
 > **Disclaimer:** forecasts are a demonstration of the ML pipeline, not financial advice.

@@ -50,9 +50,9 @@ def search_universe(query: str, limit: int = 8) -> list[dict]:
     q = str(query or "").strip().upper()
     if not q:
         return []
-    mask = frame["Symbol"].str.contains(q, na=False) | frame.get(
+    mask = frame["Symbol"].str.contains(q, na=False, regex=False) | frame.get(
         "Name", pd.Series("", index=frame.index)
-    ).astype(str).str.upper().str.contains(q, na=False)
+    ).astype(str).str.upper().str.contains(q, na=False, regex=False)
     return frame.loc[mask].head(limit)[["Symbol", "Name"]].to_dict("records")
 
 
@@ -85,9 +85,9 @@ def screener(page: int = 1, per_page: int = 10, search: str = "") -> dict:
     frame = get_universe()
     if search:
         q = search.strip().upper()
-        mask = frame["Symbol"].str.contains(q, na=False) | frame.get(
+        mask = frame["Symbol"].str.contains(q, na=False, regex=False) | frame.get(
             "Name", pd.Series("", index=frame.index)
-        ).astype(str).str.upper().str.contains(q, na=False)
+        ).astype(str).str.upper().str.contains(q, na=False, regex=False)
         frame = frame.loc[mask]
 
     paginator = Paginator(frame.reset_index(drop=True), per_page)

@@ -11,10 +11,13 @@ from xml.sax.saxutils import escape
 
 import pandas as pd
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
+from django.utils.html import escape
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
+
+from StockPricePrediction.security import rate_limit
 
 from .services import data as data_service
 from .services import indicators as indicator_service
@@ -22,8 +25,24 @@ from .services import market as market_service
 from .services import news as news_service
 from .services import predictor
 from .services import sentiment as sentiment_service
+from .validation import (
+    InputError,
+    clean_date,
+    clean_download_id,
+    clean_int,
+    clean_search,
+    clean_symbol,
+    clean_symbols,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def bad_request(request, message: str):
+    """Reject hostile input without leaking internals."""
+    if request.path.startswith("/api/"):
+        return JsonResponse({"ok": False, "error": message}, status=400)
+    return HttpResponseBadRequest(f"400 Bad Request: {escape(message)}")
 
 DEFAULT_SYMBOL = "AAPL"
 WATCHLIST = ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "AMZN", "META", "BTC-USD"]
@@ -138,16 +157,20 @@ def landing(request):
     })
 
 
+@rate_limit("page-home", 300)
 def home(request):
-    raw_symbol = request.POST.get("company1") or request.GET.get("symbol") or ""
-    symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""
-    start = request.GET.get("start") or request.POST.get("start_date")
-    end = request.GET.get("end") or request.POST.get("close_date")
     today = date.today().isoformat()
-    if end and end > today:
-        end = today
-    if start and end and start > end:
-        start = end
+    try:
+        raw_symbol = request.POST.get("company1") or request.GET.get("symbol") or ""
+        symbol = data_service.normalize_symbol(clean_symbol(raw_symbol))
+        start = clean_date(request.GET.get("start") or request.POST.get("start_date"), "start")
+        end = clean_date(request.GET.get("end") or request.POST.get("close_date"), "to")
+        if end and end > today:
+            end = today
+        if start and end and start > end:
+            start = end
+    except InputError as exc:
+        return bad_request(request, str(exc))
 
     if symbol:
         history = data_service.get_history(symbol, start=start, end=end)
@@ -194,22 +217,27 @@ def home(request):
     return render(request, "home.html", context)
 
 
+@rate_limit("page-compare", 300)
 def compare(request):
-    raw1 = request.POST.get("company1") or request.GET.get("a") or ""
-    raw2 = request.POST.get("company2") or request.GET.get("b") or ""
-    symbol1 = data_service.normalize_symbol(raw1) if str(raw1).strip() else ""
-    symbol2 = data_service.normalize_symbol(raw2) if str(raw2).strip() else ""
-    has_selection = bool(symbol1 and symbol2)
-
-    start = request.POST.get("start_date") or request.GET.get("start") or (
-        date.today() - timedelta(days=365 * 2)
-    ).strftime("%Y-%m-%d")
     today = date.today().isoformat()
-    end = request.POST.get("close_date") or request.GET.get("end") or today
-    if end > today:
-        end = today
-    if start > end:
-        start = end
+    try:
+        raw1 = request.POST.get("company1") or request.GET.get("a") or ""
+        raw2 = request.POST.get("company2") or request.GET.get("b") or ""
+        symbol1 = data_service.normalize_symbol(clean_symbol(raw1))
+        symbol2 = data_service.normalize_symbol(clean_symbol(raw2))
+        has_selection = bool(symbol1 and symbol2)
+
+        start_default = (date.today() - timedelta(days=365 * 2)).strftime("%Y-%m-%d")
+        start = clean_date(request.POST.get("start_date") or request.GET.get("start"),
+                           "start", default=start_default)
+        end = clean_date(request.POST.get("close_date") or request.GET.get("end"),
+                         "to", default=today)
+        if end > today:
+            end = today
+        if start > end:
+            start = end
+    except InputError as exc:
+        return bad_request(request, str(exc))
 
     if has_selection:
         h1 = data_service.get_history(symbol1, start=start, end=end)
@@ -258,6 +286,7 @@ def compare(request):
     return render(request, "compare.html", context)
 
 
+@rate_limit("page-predict", 120)
 def predict_view(request):
     """Forecast page. Training only happens on POST so GET stays instant."""
     symbol = ""
@@ -265,12 +294,12 @@ def predict_view(request):
     result = None
     error = None
     if request.method == "POST":
-        raw_symbol = request.POST.get("company1") or ""
-        symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""
         try:
-            days = int(request.POST.get("days") or 7)
-        except (TypeError, ValueError):
-            days = 7
+            raw_symbol = request.POST.get("company1") or ""
+            symbol = data_service.normalize_symbol(clean_symbol(raw_symbol, required=True))
+            days = clean_int(request.POST.get("days"), "days", 7, 1, 60)
+        except InputError as exc:
+            return bad_request(request, str(exc))
         if not symbol:
             error = "Enter a stock symbol to run a forecast."
         else:
@@ -323,12 +352,13 @@ def predict_view(request):
     })
 
 
+@rate_limit("page-screener", 180)
 def all_stocks(request):
-    search = request.GET.get("search") or request.POST.get("search") or ""
     try:
-        page = int(request.GET.get("page") or 1)
-    except ValueError:
-        page = 1
+        search = clean_search(request.GET.get("search") or request.POST.get("search") or "")
+        page = clean_int(request.GET.get("page"), "page", 1, 1, 10000)
+    except InputError as exc:
+        return bad_request(request, str(exc))
     screener = market_service.screener(page=page, per_page=10, search=search)
     return render(request, "stocks.html", {
         "nav_active": "stocks",
@@ -341,6 +371,7 @@ def _symbol_options() -> list[str]:
     return [row["symbol"] for row in data_service.status()["symbols"]]
 
 
+@ensure_csrf_cookie
 def alerts(request):
     """Client-side price/forecast alerts with browser notifications."""
     return render(request, "alerts.html", {
@@ -350,8 +381,12 @@ def alerts(request):
     })
 
 
+@rate_limit("page-details", 180)
 def details(request, id):
-    symbol = data_service.normalize_symbol(id)
+    try:
+        symbol = data_service.normalize_symbol(clean_symbol(id, required=True))
+    except InputError as exc:
+        return bad_request(request, str(exc))
     history = data_service.get_history(symbol)
     df = history.df
     quote = data_service.get_quote(symbol, refresh="never") if not df.empty else {}
@@ -375,12 +410,21 @@ def details(request, id):
     })
 
 
+@rate_limit("download", 60)
 def download(request, id):
     """CSV export: history (0/1/2), predictions (3), or screener (4)."""
+    try:
+        export_id = clean_download_id(id)
+        symbol = data_service.normalize_symbol(
+            clean_symbol(request.GET.get("symbol"), default=DEFAULT_SYMBOL)
+        )
+        days = clean_int(request.GET.get("days"), "days", 7, 1, 60)
+    except InputError as exc:
+        return bad_request(request, str(exc))
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="stocksight_export.csv"'
     writer = csv.writer(response)
-    symbol = data_service.normalize_symbol(request.GET.get("symbol") or DEFAULT_SYMBOL)
+    id = export_id
 
     if id in {"0", "1", "2", "history"}:
         history = data_service.get_history(symbol, refresh="never")
@@ -389,7 +433,6 @@ def download(request, id):
             writer.writerow([timestamp.strftime("%Y-%m-%d")] +
                             [round(float(row[c]), 4) for c in data_service.REQUIRED_COLUMNS])
     elif id in {"3", "prediction"}:
-        days = int(request.GET.get("days") or 7)
         try:
             result = predictor.predict(symbol, days=days, refresh_data=False)
         except Exception as exc:
@@ -410,14 +453,20 @@ def download(request, id):
 # JSON API
 # --------------------------------------------------------------------------- #
 @require_GET
+@rate_limit("api-history", 120)
 def api_history(request):
-    refresh = request.GET.get("refresh")
-    if refresh not in {"auto", "force", "never"}:
-        refresh = "auto"
-    symbol = data_service.normalize_symbol(request.GET.get("symbol") or DEFAULT_SYMBOL)
-    history = data_service.get_history(
-        symbol, start=request.GET.get("start"), end=request.GET.get("end"), refresh=refresh
-    )
+    try:
+        refresh = request.GET.get("refresh")
+        if refresh not in {"auto", "force", "never"}:
+            refresh = "auto"
+        symbol = data_service.normalize_symbol(
+            clean_symbol(request.GET.get("symbol"), default=DEFAULT_SYMBOL)
+        )
+        start = clean_date(request.GET.get("start"), "start")
+        end = clean_date(request.GET.get("end"), "end")
+    except InputError as exc:
+        return bad_request(request, str(exc))
+    history = data_service.get_history(symbol, start=start, end=end, refresh=refresh)
     return JsonResponse({
         **history.as_dict(),
         "series": _series(history.df) if not history.df.empty else None,
@@ -425,34 +474,48 @@ def api_history(request):
 
 
 @require_GET
+@rate_limit("api-quote", 120)
 def api_quote(request):
-    refresh = request.GET.get("refresh")
-    if refresh not in {"auto", "force", "never"}:
-        refresh = "auto"
-    symbol = data_service.normalize_symbol(request.GET.get("symbol") or DEFAULT_SYMBOL)
+    try:
+        refresh = request.GET.get("refresh")
+        if refresh not in {"auto", "force", "never"}:
+            refresh = "auto"
+        symbol = data_service.normalize_symbol(
+            clean_symbol(request.GET.get("symbol"), default=DEFAULT_SYMBOL)
+        )
+    except InputError as exc:
+        return bad_request(request, str(exc))
     return JsonResponse(data_service.get_quote(symbol, refresh=refresh))
 
 
 @require_GET
+@rate_limit("api-quotes", 120)
 def api_quotes(request):
     """Batch quotes for the local watchlist and alerts pages."""
-    raw = request.GET.get("symbols") or ""
-    symbols = [data_service.normalize_symbol(part) for part in raw.split(",") if part.strip()][:50]
+    try:
+        symbols = [data_service.normalize_symbol(s) for s in clean_symbols(request.GET.get("symbols"))]
+    except InputError as exc:
+        return bad_request(request, str(exc))
     return JsonResponse({
         "quotes": [data_service.get_quote(symbol, refresh="never") for symbol in symbols if symbol]
     })
 
 
-@csrf_exempt
 @require_POST
+@rate_limit("api-predict", 20)
 def api_predict(request):
     body = _json_body(request)
+    if not isinstance(body, dict):
+        return bad_request(request, "Invalid JSON object.")
     try:
-        result = predictor.predict(
-            body.get("symbol") or DEFAULT_SYMBOL,
-            days=int(body.get("days") or 7),
-            backend=body.get("backend") or "auto",
-        ).as_dict()
+        symbol = data_service.normalize_symbol(
+            clean_symbol(body.get("symbol"), default=DEFAULT_SYMBOL)
+        )
+        days = clean_int(body.get("days"), "days", 7, 1, 60)
+        backend = body.get("backend") or "auto"
+        if backend not in {"auto", "numpy", "lstm", "sklearn"}:
+            raise InputError("Invalid forecast backend.")
+        result = predictor.predict(symbol, days=days, backend=backend).as_dict()
         return JsonResponse({"ok": True, "result": result})
     except Exception as exc:
         logger.exception("API prediction failed")
@@ -460,21 +523,37 @@ def api_predict(request):
 
 
 @require_GET
+@rate_limit("api-search", 180)
 def api_search(request):
-    return JsonResponse({"results": market_service.search_universe(request.GET.get("q", ""))})
+    try:
+        query = clean_search(request.GET.get("q", ""))
+    except InputError as exc:
+        return bad_request(request, str(exc))
+    return JsonResponse({"results": market_service.search_universe(query)})
 
 
 @require_GET
+@rate_limit("api-health", 120)
 def api_health(request):
     return JsonResponse(data_service.status())
 
 
-@csrf_exempt
 @require_POST
+@rate_limit("api-refresh", 20)
 def api_refresh(request):
     body = _json_body(request)
-    symbols = body.get("symbols") or [s["symbol"] for s in data_service.status()["symbols"]]
-    return JsonResponse({"results": data_service.refresh_symbols(symbols, force=bool(body.get("force")))})
+    if not isinstance(body, dict):
+        return bad_request(request, "Invalid JSON object.")
+    try:
+        symbols = clean_symbols(body.get("symbols")) or [
+            s["symbol"] for s in data_service.status()["symbols"]
+        ]
+        force = body.get("force", False)
+        if not isinstance(force, bool):
+            raise InputError("force must be a boolean.")
+    except InputError as exc:
+        return bad_request(request, str(exc))
+    return JsonResponse({"results": data_service.refresh_symbols(symbols, force=force)})
 
 
 def api_docs(request):

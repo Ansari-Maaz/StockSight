@@ -20,9 +20,9 @@
   <meta name="twitter:title" content="StockSight — See the market clearly">
   <meta name="twitter:description" content="Daily stock news, honest AI forecasts and transparent metrics. No signup required.">
   <meta name="twitter:image" content="{{ og_image }}">
-  <script type="application/ld+json">{{ seo_json|safe }}</script>
+  <script nonce="{{ csp_nonce }}" type="application/ld+json">{{ seo_json|safe }}</script>
   <link rel="stylesheet" href="{% static 'css/landing.css' %}">
-  <script>
+  <script nonce="{{ csp_nonce }}">
     document.documentElement.classList.add("js");
     (function () {
       try {
@@ -36,7 +36,7 @@
       }
     })();
   </script>
-  <script defer src="{% static 'js/landing.js' %}"></script>
+  <script nonce="{{ csp_nonce }}" defer src="{% static 'js/landing.js' %}"></script>
 </head>
 <body>
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>

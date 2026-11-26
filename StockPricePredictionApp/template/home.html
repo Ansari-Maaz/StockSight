@@ -252,7 +252,7 @@
   {% if has_data %}
     {{ series|json_script:"mm-home-series" }}
     {{ indicators|json_script:"mm-indicators" }}
-    <script>
+    <script nonce="{{ csp_nonce }}">
       (function () {
         var el = document.getElementById('mm-home-series');
         if (!el) return;

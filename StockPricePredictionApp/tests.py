@@ -375,3 +375,44 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         response = self.client.get("/download/0/?symbol=TEST")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Date,Open,High,Low,Close,Volume", response.content)
+
+
+class SecurityTests(TestCase):
+    def test_invalid_symbol_rejected(self):
+        response = self.client.get("/api/quote/?symbol=../etc/passwd")
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+
+    def test_invalid_regex_search_rejected(self):
+        response = self.client.get("/stocks/?search=[")
+        self.assertEqual(response.status_code, 400)
+
+    def test_security_headers_present(self):
+        response = self.client.get("/")
+        self.assertIn("Content-Security-Policy", response)
+        self.assertIn("nonce-", response["Content-Security-Policy"])
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(response["X-Frame-Options"], "DENY")
+
+    def test_predict_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(
+            "/api/predict/",
+            data='{"symbol": "AAPL", "days": 1}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_rate_limit_returns_429(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        client = Client(REMOTE_ADDR="10.99.99.99")
+        for _ in range(21):
+            response = client.post(
+                "/api/predict/",
+                data='{"symbol": "AAPL", "days": 1}',
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 429)
+        self.assertIn("Retry-After", response)

@@ -164,11 +164,19 @@
     });
   }
 
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[2]) : '';
+  }
+
   function postJson(url, payload) {
     return fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
       body: JSON.stringify(payload)
     }).then(function (response) { return response.json(); });
   }

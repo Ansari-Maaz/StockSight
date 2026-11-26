@@ -29,4 +29,5 @@ def market_context(request):
         "market": cached[1],
         "app_name": getattr(settings, "APP_NAME", "StockSight"),
         "rendered_at": datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC"),
+        "csp_nonce": getattr(request, "csp_nonce", ""),
     }

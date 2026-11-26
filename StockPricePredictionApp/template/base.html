@@ -10,7 +10,7 @@
   <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
   <link rel="manifest" href="{% static 'manifest.json' %}">
-  <script>
+  <script nonce="{{ csp_nonce }}">
     /* Apply saved preferences before first paint (no theme/sidebar flash). */
     (function () {
       try {
@@ -192,9 +192,9 @@
   <!-- Per-page chart data (sets window.MM_CHART_DATA) must be defined before app.js -->
   {% block chart_data %}{% endblock %}
 
-  <script src="{% static 'vendor/chart.umd.min.js' %}"></script>
-  <script src="{% static 'js/app.js' %}"></script>
-  <script src="{% static 'js/local-data.js' %}"></script>
+  <script nonce="{{ csp_nonce }}" src="{% static 'vendor/chart.umd.min.js' %}"></script>
+  <script nonce="{{ csp_nonce }}" src="{% static 'js/app.js' %}"></script>
+  <script nonce="{{ csp_nonce }}" src="{% static 'js/local-data.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
