@@ -25,10 +25,11 @@
       <table class="data-table api-table">
         <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><span class="badge method-get">GET</span></td><td><code>/api/health/</code></td><td>Data store status: cached symbol count and freshness.</td></tr>
+          <tr><td><span class="badge method-get">GET</span></td><td><code>/api/health/</code></td><td>Data store status: cached symbol count, freshness, model info.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/history/?symbol=AAPL</code></td><td>OHLCV history with source, staleness and series arrays.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/quote/?symbol=AAPL</code></td><td>Latest quote, day change and freshness metadata.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/quotes/?symbols=AAPL,MSFT</code></td><td>Batch quotes for the local watchlist and alerts.</td></tr>
+          <tr><td><span class="badge method-post">POST</span></td><td><code>/api/predict/</code></td><td>Train/load a model and return a forecast for the requested horizon.</td></tr>
           <tr><td><span class="badge method-get">GET</span></td><td><code>/api/search/?q=app</code></td><td>Search the symbol universe; returns matching symbols and names.</td></tr>
           <tr><td><span class="badge method-post">POST</span></td><td><code>/api/refresh/</code></td><td>Re-fetch cached data for one or more symbols.</td></tr>
         </tbody>
@@ -54,6 +55,26 @@
 }</code></pre>
       </div>
 
+      <div class="example-block">
+        <div class="example-label"><span class="badge method-post">POST</span> /api/predict/ <span class="muted">request body</span></div>
+        <pre class="code-block"><code>{"symbol": "AAPL", "days": 7}</code></pre>
+      </div>
+
+      <div class="example-block">
+        <div class="example-label"><span class="badge method-post">POST</span> /api/predict/ <span class="muted">response</span></div>
+        <pre class="code-block"><code>{
+  "ok": true,
+  "result": {
+    "symbol": "AAPL",
+    "dates": ["25 Nov 2026", "26 Nov 2026"],
+    "predictions": [242.1, 242.9],
+    "signal": "BUY",
+    "confidence": 0.61,
+    "model_type": "Gradient Boosting (scikit-learn)",
+    "metrics": {"rmse": 2.31, "mape": 0.94, "samples": 42}
+  }
+}</code></pre>
+      </div>
     </div>
 
     <div class="panel">
@@ -70,6 +91,13 @@
       <div class="example-block">
         <div class="example-label"><span class="badge method-get">GET</span> Quote</div>
         <pre class="code-block"><code>curl "http://localhost:8000/api/quote/?symbol=AAPL"</code></pre>
+      </div>
+      <div class="example-block">
+        <div class="example-label"><span class="badge method-post">POST</span> Predict</div>
+        <pre class="code-block"><code>curl -X POST http://localhost:8000/api/predict/ \
+  -H "Content-Type: application/json" \
+  -H "X-CSRFToken: $CSRF" \
+  -d '{"symbol": "AAPL", "days": 7}'</code></pre>
       </div>
       <div class="example-block">
         <div class="example-label"><span class="badge method-get">GET</span> Search</div>
@@ -91,6 +119,7 @@
     <div class="cmd-grid">
       <div class="cmd-card"><code>python manage.py seed_data</code><span>Populate the symbol universe and seed an initial price cache.</span></div>
       <div class="cmd-card"><code>python manage.py refresh_data</code><span>Re-fetch history for all cached symbols and update freshness metadata.</span></div>
+      <div class="cmd-card"><code>python manage.py train_model --symbol AAPL</code><span>Pre-train and persist a forecast model so the first request is instant.</span></div>
     </div>
   </section>
 {% endblock %}

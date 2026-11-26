@@ -214,6 +214,30 @@
     });
   }
 
+  function buildForecastConfig(raw) {
+    var historyDates = raw.history_dates || [];
+    var historyClose = (raw.history_close || []).map(Number);
+    var dates = raw.dates || [];
+    var predictions = (raw.predictions || []).map(Number);
+    var labels = historyDates.concat(dates);
+
+    var histData = historyClose.concat(new Array(predictions.length).fill(null));
+    var predData = historyClose.map(function () { return null; });
+    if (historyClose.length) { predData[historyClose.length - 1] = historyClose[historyClose.length - 1]; }
+    predData = predData.concat(predictions);
+    var c1 = themeVar('--chart-1', '#4f46e5');
+    var c2 = themeVar('--chart-2', '#059669');
+
+    return {
+      type: 'line',
+      labels: labels,
+      datasets: [
+        { label: 'Historical close', data: histData, borderColor: c1, backgroundColor: c1, fill: true, borderWidth: 2 },
+        { label: 'AI forecast', data: predData, borderColor: c2, backgroundColor: c2, borderDash: [6, 4], borderWidth: 2, fill: false }
+      ]
+    };
+  }
+
   function initCharts() {
     var data = window.MM_CHART_DATA;
     if (!data || typeof Chart === 'undefined') { return; }
@@ -233,6 +257,9 @@
         chartRegistry.push({ id: pair[0], factory: function () { return data[key]; }, chart: null });
       }
     });
+    if (data.forecast) {
+      chartRegistry.push({ id: 'forecastChart', factory: function () { return buildForecastConfig(data.forecast); }, chart: null });
+    }
     renderCharts();
   }
 
@@ -422,6 +449,58 @@
       cell.colSpan = 5;
       cell.className = 'muted center';
       cell.textContent = 'No sessions available.';
+      row.appendChild(cell);
+      body.appendChild(row);
+    }
+  }
+
+  function buildForecastTable() {
+    var body = document.getElementById('forecastBody');
+    var data = window.MM_CHART_DATA;
+    if (!body || !data || !data.forecast) { return; }
+    var f = data.forecast;
+    var dates = f.dates || [];
+    var prices = (f.predictions || []).map(Number);
+    var history = (f.history_close || []).map(Number);
+    var lastHistory = history.length ? history[history.length - 1] : null;
+    body.textContent = '';
+
+    dates.forEach(function (date, i) {
+      var price = prices[i];
+      var previous = i > 0 ? prices[i - 1] : lastHistory;
+      var change = null;
+      if (isFinite(price) && isFinite(previous) && previous !== 0) {
+        change = ((price - previous) / previous) * 100;
+      }
+      var tr = document.createElement('tr');
+
+      var dateCell = document.createElement('td');
+      dateCell.textContent = date;
+      tr.appendChild(dateCell);
+
+      var priceCell = document.createElement('td');
+      priceCell.className = 'num';
+      priceCell.textContent = isFinite(price) ? price.toFixed(2) : '—';
+      tr.appendChild(priceCell);
+
+      var changeCell = document.createElement('td');
+      changeCell.className = 'num';
+      if (change === null) {
+        changeCell.textContent = '—';
+      } else {
+        changeCell.textContent = (change > 0 ? '+' : '') + change.toFixed(2) + '%';
+        changeCell.classList.add(change > 0 ? 'pos' : (change < 0 ? 'neg' : ''));
+      }
+      tr.appendChild(changeCell);
+      body.appendChild(tr);
+    });
+
+    if (!dates.length) {
+      var row = document.createElement('tr');
+      var cell = document.createElement('td');
+      cell.colSpan = 3;
+      cell.className = 'muted center';
+      cell.textContent = 'No forecast points available.';
       row.appendChild(cell);
       body.appendChild(row);
     }
@@ -676,8 +755,9 @@
     var commands = [
       { label: 'Overview', hint: 'Dashboard', href: '/dashboard/' },
       { label: 'Compare', hint: 'Two symbols', href: '/compare/' },
+      { label: 'AI Forecast', hint: 'Price projection', href: '/predict/' },
       { label: 'Market Screener', hint: 'Browse symbols', href: '/stocks/' },
-      { label: 'Alerts', hint: 'Price alerts', href: '/alerts/' },
+      { label: 'Alerts', hint: 'Price & forecast', href: '/alerts/' },
       { label: 'API Docs', hint: 'JSON endpoints', href: '/api-docs/' },
       { label: 'Landing page', hint: 'About StockSight', href: '/' }
     ];
@@ -781,6 +861,7 @@
     initCharts();
     initIndicators();
     buildOhlcTable();
+    buildForecastTable();
     colourNumericCells();
     formatShortNumbers();
     initRangeSync();

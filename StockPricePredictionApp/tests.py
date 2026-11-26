@@ -15,6 +15,7 @@ from django.test import Client, TestCase
 from StockPricePredictionApp.services import data as data_service
 from StockPricePredictionApp.services import indicators
 from StockPricePredictionApp.services import news as news_service
+from StockPricePredictionApp.services import predictor
 from StockPricePredictionApp.services import sentiment
 
 
@@ -41,11 +42,15 @@ class TempDataMixin:
         self.root = Path(self.tmp.name)
         self.data_dir = self.root / "market"
         self.data_dir.mkdir()
+        self.model_dir = self.root / "models"
+        self.model_dir.mkdir()
         self.news_dir = self.root / "news"
         self.news_dir.mkdir()
+        predictor._MODEL_MEMORY.clear()
         self.patches = [
             patch.object(data_service, "DATA_DIR", self.data_dir),
             patch.object(data_service, "META_FILE", self.data_dir / "meta.json"),
+            patch.object(predictor, "MODEL_DIR", self.model_dir),
             patch.object(news_service, "NEWS_DIR", self.news_dir),
         ]
         for p in self.patches:
@@ -115,6 +120,30 @@ class IndicatorTests(unittest.TestCase):
 
     def test_empty_frame_returns_empty(self):
         self.assertEqual(indicators.compute(pd.DataFrame()), {})
+
+
+class PredictorTests(TempDataMixin, unittest.TestCase):
+    def test_predict_from_synthetic_data_with_numpy_backend(self):
+        result = predictor.predict("TEST", days=5, backend="numpy", seq_len=20,
+                                   refresh_data=False)
+        self.assertEqual(len(result.predictions), 5)
+        self.assertEqual(len(result.dates), 5)
+        self.assertIn(result.signal, {"BUY", "SELL", "HOLD"})
+        self.assertGreater(result.metrics["samples"], 0)
+        self.assertTrue(result.fresh)
+        self.assertEqual(result.model_type, "Linear regression (NumPy)")
+        self.assertEqual(len(result.backtest_dates), result.metrics["samples"])
+        self.assertEqual(len(result.backtest_actual), len(result.backtest_predicted))
+        self.assertEqual(len(result.backtest_naive), len(result.backtest_actual))
+        self.assertIn("backtest_actual", result.as_dict())
+
+    def test_cached_model_is_reused(self):
+        kwargs = dict(days=3, backend="numpy", seq_len=20, refresh_data=False)
+        first = predictor.predict("TEST", **kwargs)
+        second = predictor.predict("TEST", **kwargs)
+        self.assertTrue(first.fresh)
+        self.assertFalse(second.fresh)
+        np.testing.assert_allclose(first.predictions, second.predictions)
 
 
 class SentimentTests(unittest.TestCase):
@@ -239,7 +268,7 @@ class ViewSmokeTests(TempDataMixin, TestCase):
                       "stale": False, "live": True}],
             "page_obj": page_obj, "total": 1, "search": "",
         }
-        for url in ["/", "/dashboard/", "/compare/", "/stocks/", "/alerts/", "/details/TEST/", "/api-docs/"]:
+        for url in ["/", "/dashboard/", "/compare/", "/predict/", "/stocks/", "/alerts/", "/details/TEST/", "/api-docs/"]:
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200, url)
@@ -248,7 +277,7 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         response = self.client.get("/")
         self.assertTemplateUsed(response, "landing.html")
         self.assertContains(response, "See the market")
-        self.assertContains(response, "See data freshness")
+        self.assertContains(response, "How AI Forecast works")
         self.assertContains(response, "No signup")
         self.assertContains(response, 'href="/dashboard/"')
         self.assertContains(response, 'id="landingThemeToggle"')
@@ -299,10 +328,16 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         self.assertEqual(compare.context["symbol2"], "")
         self.assertContains(compare, "Choose two symbols to compare")
 
+        predict = self.client.get("/predict/")
+        self.assertEqual(predict.context["symbol"], "")
+        self.assertContains(predict, "What is AI Forecast")
+        self.assertContains(predict, "Sanity-check a hunch")
+
     def test_alerts_page(self):
         alerts = self.client.get("/alerts/")
         self.assertTemplateUsed(alerts, "alerts.html")
-        self.assertContains(alerts, "Price Alerts")
+        self.assertContains(alerts, "Price & Forecast Alerts")
+        self.assertContains(alerts, "forecast_above")
         self.assertNotContains(alerts, 'href="/portfolio/"')
         self.assertEqual(self.client.get("/portfolio/").status_code, 404)
 
@@ -318,6 +353,23 @@ class ViewSmokeTests(TempDataMixin, TestCase):
         response = self.client.get("/api/history/?symbol=TEST&refresh=never")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["source"], "cache")
+
+    def test_prediction_via_post(self):
+        from unittest.mock import MagicMock
+        fake = MagicMock()
+        fake.as_dict.return_value = {
+            "symbol": "TEST", "dates": ["d1", "d2"], "predictions": [1.0, 2.0],
+            "history_dates": [], "history_close": [], "metrics": {"rmse": 1},
+            "signal": "BUY", "confidence": 0.6, "model_type": "stub",
+            "trained_at": "now", "data_through": "today", "data_source": "cache",
+            "stale": False, "fresh": True, "note": "",
+        }
+        with patch("StockPricePredictionApp.views.predictor.predict", return_value=fake):
+            response = self.client.post("/predict/", {"company1": "TEST", "days": "3"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_result"])
+        self.assertEqual(response.context["result"]["projected_change_pct"], 100.0)
+        self.assertEqual(response.context["result"]["projected_high"], 2.0)
 
     def test_csv_download(self):
         response = self.client.get("/download/0/?symbol=TEST")

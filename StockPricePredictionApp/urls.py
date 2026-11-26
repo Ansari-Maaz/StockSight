@@ -7,6 +7,7 @@ urlpatterns = [
     path("", views.landing, name="landing"),
     path("dashboard/", views.home, name="home"),
     path("compare/", views.compare, name="compare"),
+    path("predict/", views.predict_view, name="predict"),
     path("stocks/", views.all_stocks, name="all_stocks"),
     path("alerts/", views.alerts, name="alerts"),
     path("details/<str:id>/", views.details, name="details"),
@@ -18,6 +19,7 @@ urlpatterns = [
     path("api/history/", views.api_history, name="api_history"),
     path("api/quote/", views.api_quote, name="api_quote"),
     path("api/quotes/", views.api_quotes, name="api_quotes"),
+    path("api/predict/", views.api_predict, name="api_predict"),
     path("api/search/", views.api_search, name="api_search"),
     path("api/refresh/", views.api_refresh, name="api_refresh"),
 

@@ -1,6 +1,6 @@
 """Service layer for StockSight.
 
-Everything that touches market data or news lives here so
+Everything that touches market data, news, or the forecasting model lives here so
 the Django views stay thin and the pieces can be used from management commands,
 tests, or a future REST/async worker without change.
 """

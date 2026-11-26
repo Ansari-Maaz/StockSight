@@ -21,3 +21,5 @@ services:
         value: "https://*.onrender.com"
       - key: SECURE_SSL_REDIRECT
         value: "False"
+      - key: STOCKSIGHT_LITE
+        value: "1"

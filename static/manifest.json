@@ -1,7 +1,7 @@
 {
   "name": "StockSight — Market Intelligence",
   "short_name": "StockSight",
-  "description": "Daily stock news, comparison and a local-first market screener. No signup required.",
+  "description": "Daily stock news, honest AI forecasts, comparison and a local-first market screener. No signup required.",
   "start_url": "/dashboard/",
   "scope": "/",
   "display": "standalone",

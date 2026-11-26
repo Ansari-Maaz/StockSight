@@ -11,17 +11,21 @@
     price_above: { label: 'Price rises above', kind: 'price' },
     price_below: { label: 'Price falls below', kind: 'price' },
     change_above: { label: 'Daily gain above', kind: 'percent' },
-    change_below: { label: 'Daily drop below', kind: 'percent' }
+    change_below: { label: 'Daily drop below', kind: 'percent' },
+    forecast_above: { label: '7-day forecast above', kind: 'forecast' },
+    forecast_below: { label: '7-day forecast below', kind: 'forecast' }
   };
 
   function condition(alert) {
     return CONDITIONS[alert.condition] || CONDITIONS.price_above;
   }
 
-  function evaluate(alert, quote) {
+  function evaluate(alert, quote, forecast) {
     var target = Number(alert.threshold);
     var current = null;
-    if (condition(alert).kind === 'percent') {
+    if (condition(alert).kind === 'forecast') {
+      current = forecast;
+    } else if (condition(alert).kind === 'percent') {
       current = Number(quote && quote.change_pct);
     } else {
       current = Number(quote && quote.close);
@@ -31,9 +35,11 @@
     var triggered = false;
     switch (alert.condition) {
       case 'price_above':
+      case 'forecast_above':
         triggered = current > target;
         break;
       case 'price_below':
+      case 'forecast_below':
         triggered = current < target;
         break;
       case 'change_above':
@@ -106,7 +112,7 @@
         : '<span class="badge badge-neutral">WATCHING</span>';
       return '<tr>' +
         '<td><a class="symbol-link" href="/dashboard/?symbol=' + encodeURIComponent(alert.symbol) + '">' + L.esc(alert.symbol) + '</a></td>' +
-        '<td>' + L.esc(def.label) + '</td>' +
+        '<td>' + L.esc(def.label) + (def.kind === 'forecast' ? ' <span class="muted mono">AI</span>' : '') + '</td>' +
         '<td class="num">' + L.esc(displayTarget(alert)) + '</td>' +
         '<td class="num">' + L.esc(displayCurrent(alert, alert.current)) + '</td>' +
         '<td>' + status + '</td>' +
@@ -122,7 +128,7 @@
 
   function checkPriceAlerts(quiet) {
     var alerts = L.getAlerts();
-    var priceAlerts = alerts;
+    var priceAlerts = alerts.filter(function (alert) { return condition(alert).kind !== 'forecast'; });
     if (!priceAlerts.length) {
       if (!quiet) { L.toast('No price alerts to check.', 'info'); }
       return Promise.resolve();
@@ -133,7 +139,7 @@
       var map = quoteMap(quotes);
       var triggered = 0;
       priceAlerts.forEach(function (alert) {
-        var result = evaluate(alert, map[alert.symbol]);
+        var result = evaluate(alert, map[alert.symbol], null);
         var wasTriggered = !!alert.triggered;
         alert.current = result.current;
         alert.triggered = result.triggered;
@@ -158,6 +164,64 @@
     });
   }
 
+  function postJson(url, payload) {
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (response) { return response.json(); });
+  }
+
+  function checkForecastAlerts() {
+    var alerts = L.getAlerts();
+    var forecastAlerts = alerts.filter(function (alert) { return condition(alert).kind === 'forecast'; });
+    if (!forecastAlerts.length) {
+      L.toast('No forecast alerts to check.', 'info');
+      return;
+    }
+    var button = document.getElementById('checkForecastBtn');
+    if (button) { button.disabled = true; button.textContent = 'Checking…'; }
+
+    var symbols = forecastAlerts.map(function (a) { return a.symbol; })
+      .filter(function (s, i, arr) { return arr.indexOf(s) === i; });
+    var forecasts = {};
+
+    symbols.reduce(function (chain, symbol) {
+      return chain.then(function () {
+        return postJson('/api/predict/', { symbol: symbol, days: 7 })
+          .then(function (payload) {
+            var values = (payload.result && payload.result.predictions) || [];
+            forecasts[symbol] = values.length ? Number(values[values.length - 1]) : null;
+          })
+          .catch(function () { forecasts[symbol] = null; });
+      });
+    }, Promise.resolve()).then(function () {
+      var triggered = 0;
+      forecastAlerts.forEach(function (alert) {
+        var result = evaluate(alert, null, forecasts[alert.symbol]);
+        alert.current = result.current;
+        alert.triggered = result.triggered;
+        alert.checkedAt = nowLabel();
+        if (result.triggered) {
+          triggered += 1;
+          if (!alert.notified) {
+            notify(alert, 'Forecast now ' + displayCurrent(alert, result.current));
+            alert.notified = true;
+          }
+        } else {
+          alert.notified = false;
+        }
+      });
+      L.setAlerts(alerts);
+      render();
+      L.toast('Checked ' + symbols.length + ' forecast' + (symbols.length === 1 ? '' : 's') +
+        ' · ' + triggered + ' triggered', 'success');
+    }).then(function () {
+      if (button) { button.disabled = false; button.textContent = 'Check forecasts'; }
+    });
+  }
+
   function syncNotifyButton() {
     var button = document.getElementById('notifyBtn');
     if (!button) { return; }
@@ -179,7 +243,7 @@
         var def = CONDITIONS[conditionInput.value];
         hint.textContent = def && def.kind === 'percent'
           ? 'Enter a positive percentage. “Daily drop below 2%” triggers at −2% or worse.'
-          : 'Enter a price target, or a percentage for daily-change alerts.';
+          : 'Enter a price target. Forecast alerts reuse the local 7-day model when checked.';
       });
     }
 
@@ -207,7 +271,7 @@
         });
         L.setAlerts(alerts);
         form.reset();
-        if (hint) { hint.textContent = 'Enter a price target, or a percentage for daily-change alerts.'; }
+        if (hint) { hint.textContent = 'Enter a price target. Forecast alerts reuse the local 7-day model when checked.'; }
         render();
         L.toast('Alert saved in this browser', 'success');
       });
@@ -239,6 +303,11 @@
         checkPriceAlerts(false).then(function () { checkButton.disabled = false; });
       });
     }
+    var forecastButton = document.getElementById('checkForecastBtn');
+    if (forecastButton) {
+      forecastButton.addEventListener('click', checkForecastAlerts);
+    }
+
     syncNotifyButton();
     checkPriceAlerts(true);
   }

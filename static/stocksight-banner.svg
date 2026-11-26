@@ -76,7 +76,7 @@
   <text x="526" y="484" fill="#a5b4fc" font-family="Arial, Helvetica, sans-serif"
         font-size="28" font-weight="700" letter-spacing="7">AI MARKET INTELLIGENCE</text>
   <text x="526" y="544" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif"
-        font-size="25">Daily stock news · Live prices · Market screener</text>
+        font-size="25">Daily stock news · Live prices · AI forecasts</text>
 
   <g>
     <rect x="520" y="596" width="372" height="62" rx="31" fill="#4f46e5"/>
