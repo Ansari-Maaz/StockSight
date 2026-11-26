@@ -29,16 +29,17 @@
       </div>
       <div class="field">
         <label for="start_date">From</label>
-        <input type="date" id="start_date" name="start_date" value="{{ start|default:'' }}">
+        <input type="date" id="start_date" name="start_date" value="{{ start|default:'' }}" max="{{ today }}">
       </div>
       <div class="field">
         <label for="close_date">To</label>
-        <input type="date" id="close_date" name="close_date" value="{{ end|default:'' }}">
+        <input type="date" id="close_date" name="close_date" value="{{ end|default:'' }}" max="{{ today }}">
       </div>
       <div class="field field-action">
         <button type="submit" class="btn btn-primary">Analyze</button>
       </div>
     </form>
+    <p class="note-text muted">Historical prices only — dates stop at today. For future projections, use AI Forecast.</p>
 
     {% if watchlist %}
       <div class="chip-row">

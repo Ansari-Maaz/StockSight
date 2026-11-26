@@ -143,6 +143,11 @@ def home(request):
     symbol = data_service.normalize_symbol(raw_symbol) if str(raw_symbol).strip() else ""
     start = request.GET.get("start") or request.POST.get("start_date")
     end = request.GET.get("end") or request.POST.get("close_date")
+    today = date.today().isoformat()
+    if end and end > today:
+        end = today
+    if start and end and start > end:
+        start = end
 
     if symbol:
         history = data_service.get_history(symbol, start=start, end=end)
@@ -184,6 +189,7 @@ def home(request):
         "watchlist": WATCHLIST,
         "start": start or "",
         "end": end or "",
+        "today": today,
     }
     return render(request, "home.html", context)
 
@@ -198,7 +204,12 @@ def compare(request):
     start = request.POST.get("start_date") or request.GET.get("start") or (
         date.today() - timedelta(days=365 * 2)
     ).strftime("%Y-%m-%d")
-    end = request.POST.get("close_date") or request.GET.get("end") or date.today().strftime("%Y-%m-%d")
+    today = date.today().isoformat()
+    end = request.POST.get("close_date") or request.GET.get("end") or today
+    if end > today:
+        end = today
+    if start > end:
+        start = end
 
     if has_selection:
         h1 = data_service.get_history(symbol1, start=start, end=end)
@@ -233,7 +244,7 @@ def compare(request):
         "nav_active": "compare",
         "symbol1": symbol1, "symbol2": symbol2,
         "has_selection": has_selection,
-        "start": start, "end": end,
+        "start": start, "end": end, "today": today,
         "series": series,
         "stats1": _stats(a, q1), "stats2": _stats(b, q2),
         "quote1": q1, "quote2": q2,

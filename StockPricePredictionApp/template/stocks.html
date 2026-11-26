@@ -94,6 +94,13 @@
             {% endfor %}
           </div>
 
+          <form class="page-jump" method="get" action="{% url 'all_stocks' %}">
+            <input type="hidden" name="search" value="{{ search|default:'' }}">
+            <label for="pageJump">Jump to page</label>
+            <input type="number" id="pageJump" name="page" min="1" max="{{ page_obj.paginator.num_pages }}" value="{{ page_obj.number }}">
+            <button type="submit" class="page-btn">Go</button>
+          </form>
+
           <span class="page-total">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.num_pages }} total pages</span>
 
           {% if page_obj.has_next %}
