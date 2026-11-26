@@ -1,0 +1,25 @@
+# Render Blueprint — free-tier StockSight (lightweight build).
+# Deploys a single 512 MB web service. No disk, no background worker:
+# market data is refreshed on demand when a page is opened, and the NumPy
+# forecast model is rebuilt in memory after each restart.
+
+services:
+  - type: web
+    name: stocksight
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.render
+    healthCheckPath: /api/health/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "*"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: SECURE_SSL_REDIRECT
+        value: "False"
+      - key: STOCKSIGHT_LITE
+        value: "1"

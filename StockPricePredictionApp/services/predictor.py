@@ -25,11 +25,40 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from django.conf import settings
-from sklearn.preprocessing import MinMaxScaler
 
 from . import data as data_service
 
 logger = logging.getLogger(__name__)
+
+
+class _NumpyMinMaxScaler:
+    """Tiny single-feature MinMaxScaler, so scikit-learn is not required at runtime."""
+
+    def __init__(self, feature_range=(0, 1)):
+        self.lower, self.upper = feature_range
+        self.min_ = None
+        self.scale_ = None
+
+    def fit(self, values):
+        values = np.asarray(values, dtype=float)
+        self.min_ = values.min(axis=0)
+        span = values.max(axis=0) - self.min_
+        self.scale_ = np.where(span == 0, 1.0, (self.upper - self.lower) / span)
+        return self
+
+    def transform(self, values):
+        return np.asarray(values, dtype=float) * self.scale_ + self.lower - self.min_ * self.scale_
+
+    def fit_transform(self, values):
+        return self.fit(values).transform(values)
+
+
+# Always use the lightweight scaler. The full build can still use scikit-learn
+# trainers below, but importing sklearn is no longer needed to render a page.
+MinMaxScaler = _NumpyMinMaxScaler
+
+# Render-free / low-memory build: skip TensorFlow and scikit-learn entirely.
+LITE_MODE = os.environ.get("STOCKSIGHT_LITE", "").lower() in ("1", "true", "yes")
 
 SEQ_LEN = 60
 MODEL_VERSION = "v2-returns"   # bump when the training target/pipeline changes
@@ -296,7 +325,7 @@ def predict(
     x_val, y_val = x_all[split:], y_all[split:]
 
     preferred = [] if backend == "auto" else [backend]
-    candidates = preferred or ["lstm", "sklearn", "numpy"]
+    candidates = ["numpy"] if LITE_MODE else (preferred or ["lstm", "sklearn", "numpy"])
     use_backend, trained_model, fresh = None, None, False
     note = ""
 

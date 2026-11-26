@@ -273,6 +273,30 @@ The included `Dockerfile` works on container-based hosts:
 - **Persistent disk:** mount one at `/app/data` (price/news cache) and one at `/app/models` (trained models). Set `DB_NAME=/app/data/db.sqlite3` so SQLite also survives restarts; keep a single instance or switch to Postgres.
 - Choose at least 2 GB RAM; the TensorFlow image is large and the free tiers are usually too small.
 
+### Option 2b — Render free tier (lightweight build)
+
+A reduced-size build is included for Render's free 512 MB web service. It uses
+`Dockerfile.render`, `requirements-render.txt` and `render.yaml`, and forces the
+built-in NumPy linear-regression forecast backend (`STOCKSIGHT_LITE=1`). TensorFlow,
+Keras, scikit-learn and SciPy are **not** installed in this build.
+
+Deploy with the Render Blueprint:
+
+1. Push this repo to GitHub and sign in to Render with GitHub (no card needed for the free plan).
+2. **New → Blueprint → select the repository** → Render reads `render.yaml`.
+3. Deploy. The URL will be `https://stocksight.onrender.com` (or similar).
+
+Trade-offs compared with the full build:
+
+- Forecasts use a NumPy linear model instead of the LSTM/gradient-boosting models.
+- No persistent disk: the market CSVs ship in the repo; price/news caches and model
+  files are rebuilt in memory after each restart.
+- No background refresher container: market data refreshes on demand when a page is loaded.
+- Free web services sleep after ~15 minutes idle; the first request after waking takes about a minute.
+- Keep a single instance (`--workers 1`) to stay inside 512 MB.
+
+For the full app, use the VPS or Oracle Always Free deployment above.
+
 ### Option 3 — Manual gunicorn (existing server with nginx/Caddy)
 
 ```bash
