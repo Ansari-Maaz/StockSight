@@ -321,15 +321,6 @@ def _symbol_options() -> list[str]:
     return [row["symbol"] for row in data_service.status()["symbols"]]
 
 
-def portfolio(request):
-    """Client-side portfolio and watchlist — nothing is sent to the server."""
-    return render(request, "portfolio.html", {
-        "nav_active": "portfolio",
-        "watchlist": WATCHLIST,
-        "symbol_options": _symbol_options(),
-    })
-
-
 def alerts(request):
     """Client-side price/forecast alerts with browser notifications."""
     return render(request, "alerts.html", {
@@ -424,7 +415,7 @@ def api_quote(request):
 
 @require_GET
 def api_quotes(request):
-    """Batch quotes for local-only portfolio/watchlist/alerts pages."""
+    """Batch quotes for the local watchlist and alerts pages."""
     raw = request.GET.get("symbols") or ""
     symbols = [data_service.normalize_symbol(part) for part in raw.split(",") if part.strip()][:50]
     return JsonResponse({
@@ -503,7 +494,7 @@ def sitemap_xml(request):
     base = request.build_absolute_uri("/").rstrip("/")
     paths = [
         "/", "/dashboard/", "/compare/", "/predict/", "/stocks/",
-        "/portfolio/", "/alerts/", "/api-docs/",
+        "/alerts/", "/api-docs/",
     ]
     for row in data_service.status()["symbols"]:
         paths.append("/details/" + row["symbol"] + "/")

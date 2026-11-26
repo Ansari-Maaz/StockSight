@@ -1,7 +1,7 @@
 /* StockSight service worker — offline shell, cache-first assets, network-first pages. */
 'use strict';
 
-var CACHE = 'stocksight-shell-v1';
+var CACHE = 'stocksight-shell-v2';
 var ASSETS = [
   '/static/offline.html',
   '/static/manifest.json',
@@ -16,7 +16,6 @@ var ASSETS = [
   '/static/vendor/chart.umd.min.js',
   '/static/js/app.js',
   '/static/js/local-data.js',
-  '/static/js/portfolio.js',
   '/static/js/alerts.js',
   '/static/js/landing.js'
 ];

@@ -757,7 +757,6 @@
       { label: 'Compare', hint: 'Two symbols', href: '/compare/' },
       { label: 'AI Forecast', hint: 'Price projection', href: '/predict/' },
       { label: 'Market Screener', hint: 'Browse symbols', href: '/stocks/' },
-      { label: 'Portfolio', hint: 'Local P&L', href: '/portfolio/' },
       { label: 'Alerts', hint: 'Price & forecast', href: '/alerts/' },
       { label: 'API Docs', hint: 'JSON endpoints', href: '/api-docs/' },
       { label: 'Landing page', hint: 'About StockSight', href: '/' }

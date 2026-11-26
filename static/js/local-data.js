@@ -3,7 +3,6 @@
   'use strict';
 
   var KEYS = {
-    positions: 'mm-positions',
     watchlist: 'mm-watchlist',
     alerts: 'mm-alerts'
   };
@@ -22,12 +21,6 @@
   function normaliseSymbol(symbol) {
     return String(symbol || '').trim().toUpperCase();
   }
-
-  function getPositions() {
-    var items = read(KEYS.positions, []);
-    return Array.isArray(items) ? items : [];
-  }
-  function setPositions(items) { write(KEYS.positions, items); }
 
   function getWatchlist() {
     var items = read(KEYS.watchlist, []);
@@ -164,8 +157,6 @@
   }
 
   window.StockSightLocal = {
-    getPositions: getPositions,
-    setPositions: setPositions,
     getWatchlist: getWatchlist,
     setWatchlist: setWatchlist,
     toggleWatch: toggleWatch,

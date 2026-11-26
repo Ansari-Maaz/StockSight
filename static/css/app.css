@@ -752,7 +752,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
 }
 @keyframes shimmer { to { transform: translateX(100%); } }
 
-/* ── Local-only portfolio / alerts / watchlist ────────────────────── */
+/* ── Local-only alerts / watchlist ─────────────────────────────────── */
 .local-banner { display: flex; align-items: center; gap: 12px; border-left: 3px solid var(--primary); }
 .local-banner p { color: var(--muted); font-size: 12.5px; line-height: 1.6; }
 .local-badge {
@@ -772,11 +772,6 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
 }
 .local-chip button:hover { color: var(--rose); background: var(--rose-soft); }
 .watch-toggle.active { color: var(--primary); border-color: var(--primary-line); background: var(--primary-soft); }
-.allocation-bar {
-  display: flex; height: 9px; margin: 0 0 14px; border-radius: 999px;
-  overflow: hidden; background: var(--surface-3);
-}
-.allocation-segment { display: block; height: 100%; min-width: 2px; transition: width .35s ease; }
 .head-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .mono { font-family: var(--mono); }
 

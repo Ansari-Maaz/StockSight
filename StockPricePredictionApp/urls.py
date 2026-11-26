@@ -9,7 +9,6 @@ urlpatterns = [
     path("compare/", views.compare, name="compare"),
     path("predict/", views.predict_view, name="predict"),
     path("stocks/", views.all_stocks, name="all_stocks"),
-    path("portfolio/", views.portfolio, name="portfolio"),
     path("alerts/", views.alerts, name="alerts"),
     path("details/<str:id>/", views.details, name="details"),
     path("api-docs/", views.api_docs, name="api_docs"),
