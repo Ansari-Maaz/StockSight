@@ -386,6 +386,17 @@ body.pointer-fine .cursor-glow { opacity: 1; }
 .how-visual { display: inline-block; margin-top: 18px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--cyan); background: rgba(34, 211, 238, .06); font-size: 10px; }
 
 /* ── Data ─────────────────────────────────────────────────────────── */
+.how-preview {
+  margin: 34px 0 0; padding: 12px; border-radius: 22px;
+  border: 1px solid var(--border); background: var(--surface);
+  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, .85);
+}
+.how-preview img { display: block; width: 100%; height: auto; border-radius: 14px; }
+.how-preview figcaption {
+  margin-top: 10px; text-align: center; color: var(--muted);
+  font-size: 12px; letter-spacing: .01em;
+}
+
 .data-section { padding-top: 80px; }
 .data-layout {
   display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center;

@@ -1,7 +1,7 @@
 /* StockSight service worker — offline shell, cache-first assets, network-first pages. */
 'use strict';
 
-var CACHE = 'stocksight-shell-v11';
+var CACHE = 'stocksight-shell-v12';
 var ASSETS = [
   '/static/offline.html',
   '/static/manifest.json',
@@ -9,6 +9,7 @@ var ASSETS = [
   '/static/favicon.svg',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
+  '/static/stocksight-banner.png',
   '/static/css/app.css',
   '/static/css/landing.css',
   '/static/fonts/plus-jakarta-sans-400_800.woff2',

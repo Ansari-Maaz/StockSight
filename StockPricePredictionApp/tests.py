@@ -423,3 +423,9 @@ class NavigationTests(TestCase):
         response = self.client.get("/dashboard/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'class="brand" href="/"')
+
+
+class AssetTests(TestCase):
+    def test_landing_uses_banner_thumbnail(self):
+        response = self.client.get("/")
+        self.assertContains(response, "stocksight-banner.png")
