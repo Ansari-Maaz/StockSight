@@ -81,7 +81,7 @@ def _snapshot_row(symbol: str) -> dict:
     }
 
 
-def screener(page: int = 1, per_page: int = 10, search: str = "") -> dict:
+def screener(page: int = 1, per_page: int = 10, search: str = "", live: bool = True) -> dict:
     frame = get_universe()
     if search:
         q = search.strip().upper()
@@ -99,7 +99,10 @@ def screener(page: int = 1, per_page: int = 10, search: str = "") -> dict:
     # is stale. provider failures still fall back to the bundled snapshot and
     # are marked STALE, so the screener never shows silently outdated prices.
     def quote_for(symbol: str) -> dict:
-        return data_service.get_quote(symbol, refresh="auto")
+        # Bulk exports use the bundled/cached snapshot; only interactive pages
+        # trigger provider refreshes. Otherwise a 500-row export would make
+        # hundreds of network calls and time out.
+        return data_service.get_quote(symbol, refresh="auto" if live else "never")
 
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {pool.submit(quote_for, s): s for s in symbols}

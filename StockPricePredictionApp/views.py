@@ -11,6 +11,7 @@ from xml.sax.saxutils import escape
 
 import pandas as pd
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.utils.html import escape
@@ -441,7 +442,7 @@ def download(request, id):
             writer.writerow(["Date", "Prediction"])
             writer.writerows(zip(result.dates, [round(p, 2) for p in result.predictions]))
     else:
-        screener = market_service.screener(page=1, per_page=500)
+        screener = market_service.screener(page=1, per_page=500, live=False)
         writer.writerow(["Symbol", "Name", "Close", "Change", "% Change", "Country", "Industry", "Date"])
         for row in screener["rows"]:
             writer.writerow([row["symbol"], row["name"], row["close"], row["change"],
@@ -535,7 +536,8 @@ def api_search(request):
 @require_GET
 @rate_limit("api-health", 120)
 def api_health(request):
-    return JsonResponse(data_service.status())
+    payload = cache.get_or_set("health-status", data_service.status, 60)
+    return JsonResponse(payload)
 
 
 @require_POST

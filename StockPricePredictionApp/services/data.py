@@ -416,13 +416,27 @@ def status() -> dict:
     symbols = []
     for path in files:
         info = meta.get(path.stem, {})
-        df = _read_csv(path)
+        rows = info.get("rows")
+        if rows is None:
+            # Cheap fallback: count lines, never parse the whole frame.
+            try:
+                with path.open("r", encoding="utf-8", errors="ignore") as fh:
+                    rows = max(0, sum(1 for _ in fh) - 1)
+            except OSError:
+                rows = 0
+        last_date = info.get("last_date")
+        stale = False
+        if last_date:
+            try:
+                stale = date.fromisoformat(str(last_date)[:10]) < _expected_session()
+            except ValueError:
+                stale = True
         symbols.append({
             "symbol": path.stem,
-            "rows": len(df) if df is not None else 0,
-            "last_date": str(df.index[-1].date()) if df is not None else None,
+            "rows": rows,
+            "last_date": last_date,
             "last_success": info.get("last_success"),
-            "stale": bool(df is not None and df.index[-1].date() < _expected_session()),
+            "stale": stale,
         })
     return {
         "data_dir": str(DATA_DIR),
