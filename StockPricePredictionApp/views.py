@@ -131,6 +131,7 @@ def landing(request):
     base_uri = request.build_absolute_uri("/").rstrip("/")
     canonical_url = base_uri + "/"
     og_image = request.build_absolute_uri(settings.STATIC_URL + "stocksight-thumbnail.png")
+    logo_url = request.build_absolute_uri(settings.STATIC_URL + "logo.svg")
     seo_json = json.dumps({
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -140,6 +141,13 @@ def landing(request):
         "description": "Daily stock news, honest AI forecasts, side-by-side comparison and a local-first market screener. No signup required.",
         "url": canonical_url,
         "image": og_image,
+        "logo": logo_url,
+        "publisher": {
+            "@type": "Organization",
+            "name": getattr(settings, "APP_NAME", "StockSight"),
+            "logo": logo_url,
+            "image": og_image,
+        },
         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
     })
 
@@ -153,6 +161,7 @@ def landing(request):
         "demo_symbols": WATCHLIST[:6],
         "canonical_url": canonical_url,
         "og_image": og_image,
+        "logo_url": logo_url,
         "seo_json": seo_json,
         "year": date.today().year,
     })

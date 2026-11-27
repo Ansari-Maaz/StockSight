@@ -436,3 +436,11 @@ class SeoTests(TestCase):
         response = self.client.get("/")
         self.assertContains(response, "stocksight-thumbnail.png")
         self.assertContains(response, 'og:image:width" content="1200"')
+
+
+class LinkPreviewTests(TestCase):
+    def test_logo_and_thumbnail_exposed(self):
+        response = self.client.get("/")
+        self.assertContains(response, 'og:logo')
+        self.assertContains(response, 'stocksight-thumbnail.png')
+        self.assertContains(response, '"publisher"')
