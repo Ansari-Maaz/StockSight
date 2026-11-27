@@ -416,3 +416,10 @@ class SecurityTests(TestCase):
             )
         self.assertEqual(response.status_code, 429)
         self.assertIn("Retry-After", response)
+
+
+class NavigationTests(TestCase):
+    def test_brand_links_to_landing(self):
+        response = self.client.get("/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="brand" href="/"')

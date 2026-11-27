@@ -576,7 +576,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
 .compare-dot.violet { background: var(--violet); }
 
 /* ── Tables ───────────────────────────────────────────────────────── */
-.table-wrap { width: 100%; overflow-x: auto; }
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .data-table th {
   padding: 10px 12px; text-align: left;
@@ -840,13 +840,22 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
   .brand-mark { width: 32px; height: 32px; flex-basis: 32px; }
   .brand-name { font-size: 14px; }
   .brand-sub { display: none; }
-  .sidebar-nav { flex: 1 1 auto; flex-direction: row; align-items: center; gap: 4px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
-  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .sidebar-nav { display: none; }
+  .mobile-nav-open .sidebar-nav {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px;
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    padding: 10px 16px 16px; background: var(--surface);
+    border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
+  }
   .nav-label, .nav-tag, .nav-dot, .sidebar-footer { display: none; }
-  .nav-link { flex: 0 0 auto; padding: 7px 11px; font-size: 12px; white-space: nowrap; }
-  .nav-link svg { width: 15px; height: 15px; flex-basis: 15px; }
+  .nav-link { min-height: 44px; padding: 10px 12px; font-size: 12.5px; white-space: nowrap; }
+  .mobile-nav-open .nav-link { width: 100%; }
+  .nav-link svg { width: 16px; height: 16px; flex-basis: 16px; }
   .nav-link:hover { transform: none; }
   .nav-link.active { box-shadow: inset 0 -2px 0 var(--primary); }
+  .sidebar-toggle .icon-collapse, .sidebar-toggle .icon-expand { display: none; }
+  .sidebar-toggle .icon-menu { display: block; }
+  .btn { min-height: 40px; }
 
   /* On small screens "collapsed" hides the horizontal nav, keeping brand + toggle. */
   .sidebar-collapsed .app-shell { grid-template-columns: 1fr; }
@@ -883,6 +892,8 @@ code { font-family: var(--mono); font-size: .92em; color: var(--primary-dark); }
   .hero-side { align-items: flex-start; }
   .hero-side .hero-meta { text-align: left; }
   .field { min-width: 0; width: 100%; }
+  .field input:not([type="range"]), .field select { font-size: 16px; min-height: 44px; }
+  .page-jump input { font-size: 16px; min-height: 40px; }
   .field-symbol, .field-grow, .field-range { width: 100%; }
   .field-action { margin-left: 0; width: 100%; }
   .field-action .btn { flex: 1; }
