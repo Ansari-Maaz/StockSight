@@ -428,4 +428,11 @@ class NavigationTests(TestCase):
 class AssetTests(TestCase):
     def test_landing_uses_banner_thumbnail(self):
         response = self.client.get("/")
-        self.assertContains(response, "stocksight-banner.png")
+        self.assertContains(response, "stocksight-banner")
+
+
+class SeoTests(TestCase):
+    def test_link_preview_thumbnail(self):
+        response = self.client.get("/")
+        self.assertContains(response, "stocksight-thumbnail.png")
+        self.assertContains(response, 'og:image:width" content="1200"')

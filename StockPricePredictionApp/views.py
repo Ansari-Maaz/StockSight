@@ -130,7 +130,7 @@ def landing(request):
     hero_series = _series(hero_df) if not hero_df.empty else {"labels": [], "close": []}
     base_uri = request.build_absolute_uri("/").rstrip("/")
     canonical_url = base_uri + "/"
-    og_image = request.build_absolute_uri(settings.STATIC_URL + "stocksight-banner.png")
+    og_image = request.build_absolute_uri(settings.STATIC_URL + "stocksight-thumbnail.png")
     seo_json = json.dumps({
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",

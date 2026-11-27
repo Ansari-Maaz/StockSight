@@ -19,7 +19,7 @@ A lightweight stock price prediction dashboard built with **Django 5**, **yfinan
 | **Honest metrics** | RMSE, MAE, MAPE, directional accuracy and a naive-baseline comparison on a chronological holdout. |
 | **No secret keys required** | All core features work without API keys; Finnhub/NewsAPI are optional upgrades. |
 | **Modern UI** | Animated public landing page at `/`, plus a responsive dashboard at `/dashboard/` with **light/dark theme toggle** (persisted in `localStorage`), a **collapsible sidebar**, locally bundled Plus Jakarta Sans + JetBrains Mono fonts, indigo/violet palette, semantic colour coding, and Chart.js charts that re-theme with the active mode (vendored locally). No CDN dependency at runtime. |
-| **Local workspace** | Browser-only watchlist and price/forecast alerts. No account or server-side user state. Includes a `Ctrl/⌘K` command palette, an installable PWA with an offline shell, SEO files and branded error pages. |
+| **Local workspace** | Browser-only watchlist and price/forecast alerts. No account or server-side user state. Includes a `Ctrl/⌘K` command palette, an installable PWA with an offline shell, SEO files, a 1200×630 social thumbnail (`static/stocksight-thumbnail.png`) for link previews, and branded error pages. |
 | **JSON API** | `/api/history/`, `/api/quote/`, `/api/quotes/`, `/api/predict/`, `/api/search/`, `/api/health/`, `/api/refresh/`. |
 | **Production bits** | Env-driven settings, security headers, gunicorn, Dockerfile + compose, cron example, logging, tests. |
 
