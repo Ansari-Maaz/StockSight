@@ -538,7 +538,7 @@
       if (output) { output.textContent = range.value + ' days'; }
     });
     number.addEventListener('input', function () {
-      var max = Number(range.max) || 90;
+      var max = Number(range.max) || 60;
       var value = Math.max(1, Math.min(max, Number(number.value) || 1));
       range.value = value;
       if (output) { output.textContent = value + ' days'; }
