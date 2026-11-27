@@ -1,7 +1,7 @@
 /* StockSight service worker — offline shell, cache-first assets, network-first pages. */
 'use strict';
 
-var CACHE = 'stocksight-shell-v13';
+var CACHE = 'stocksight-shell-v14';
 var ASSETS = [
   '/static/offline.html',
   '/static/manifest.json',
