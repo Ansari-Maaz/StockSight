@@ -133,6 +133,8 @@ APP_NAME = "StockSight"
 MARKET_DATA_DIR = Path(env("MARKET_DATA_DIR", str(BASE_DIR / "data" / "market")))
 MARKET_UNIVERSE_CSV = Path(env("MARKET_UNIVERSE_CSV", str(BASE_DIR / "all_stockss.csv")))
 MARKET_REFRESH_TTL_HOURS = env("MARKET_REFRESH_TTL_HOURS", "1", float)
+# After a Yahoo auth/rate-limit failure, pause all remote fetches for this long.
+MARKET_ERROR_COOLDOWN_SECONDS = env("MARKET_ERROR_COOLDOWN_SECONDS", "300", float)
 NEWS_DIR = Path(env("NEWS_DIR", str(BASE_DIR / "data" / "news")))
 NEWS_TTL_HOURS = env("NEWS_TTL_HOURS", "6", float)
 

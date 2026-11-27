@@ -34,6 +34,28 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# A datacenter IP can be rate-limited/blocked by the free Yahoo endpoints. Once
+# that happens, stop every remote fetch for a short window and serve cached data
+# instead of hammering the provider and flooding the logs.
+PROVIDER_COOLDOWN_SECONDS = float(getattr(settings, "MARKET_ERROR_COOLDOWN_SECONDS", 300))
+_remote_blocked_until: float = 0.0
+_AUTH_ERROR_MARKERS = ("401", "429", "crumb", "unauthorized", "rate-limited", "too many requests")
+
+
+def remote_available() -> bool:
+    return time.time() >= _remote_blocked_until
+
+
+def _note_remote_failure(exc: Exception) -> None:
+    global _remote_blocked_until
+    text = str(exc).lower()
+    if any(marker in text for marker in _AUTH_ERROR_MARKERS):
+        _remote_blocked_until = time.time() + PROVIDER_COOLDOWN_SECONDS
+        logger.warning(
+            "Provider auth/rate-limit detected; pausing remote fetches for %ss",
+            int(PROVIDER_COOLDOWN_SECONDS),
+        )
+
 # --------------------------------------------------------------------------- #
 # Configuration
 # --------------------------------------------------------------------------- #
@@ -233,6 +255,9 @@ def fetch_remote(
     start = str(start or _default_start())
     end = str(end or _default_end())
 
+    if not remote_available():
+        raise ConnectionError("Provider temporarily unavailable (cooldown active)")
+
     last_error: Exception | None = None
     for attempt in range(attempts):
         try:
@@ -256,9 +281,12 @@ def fetch_remote(
             return raw[REQUIRED_COLUMNS].dropna(subset=["Close"]).sort_index()
         except Exception as exc:
             last_error = exc
+            _note_remote_failure(exc)
             logger.warning("Remote fetch %s failed (attempt %s): %s", symbol, attempt + 1, exc)
-            if attempt + 1 < attempts:
+            if attempt + 1 < attempts and remote_available():
                 time.sleep(0.75 * (attempt + 1))
+                if not remote_available():
+                    break
     raise ConnectionError(f"Could not fetch {symbol}: {last_error}") from last_error
 
 
@@ -325,7 +353,8 @@ def get_history(
                         (datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
                          if path.exists() else None))
 
-        if refresh != "never" and (refresh == "force" or _should_refresh(symbol, local, False)):
+        if (refresh != "never" and remote_available()
+                and (refresh == "force" or _should_refresh(symbol, local, False))):
             _mark_attempt(symbol)
             try:
                 fetch_start = local.index[-1].date() - timedelta(days=7) if local is not None else start

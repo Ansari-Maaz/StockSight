@@ -25,3 +25,5 @@ services:
         value: "1"
       - key: RATE_LIMIT_ENABLED
         value: "True"
+      - key: MARKET_ERROR_COOLDOWN_SECONDS
+        value: "300"
